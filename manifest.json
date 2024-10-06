@@ -1,0 +1,31 @@
+{
+    "manifest_version": 3,
+    "name": "Social Bias Analyzer",
+    "version": "1.0",
+    "description": "Analyzes web pages for social bias using AI models",
+    "permissions": [
+      "activeTab",
+      "storage",
+      "alarms",
+      "scripting"
+    ],
+    "host_permissions": [
+      "<all_urls>"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "assets/icon.png",
+        "48": "assets/icon.png",
+        "128": "assets/icon.png"
+      }
+    },
+    "icons": {
+      "16": "assets/icon.png",
+      "48": "assets/icon.png",
+      "128": "assets/icon.png"
+    }
+  }
