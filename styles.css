@@ -48,3 +48,29 @@
 
 /* Rounded utilities */
 .rounded-full { border-radius: 9999px; }
+
+/* Highlighted entity styles */
+.highlighted-entity {
+    padding: 2px 4px;
+    border-radius: 2px;
+    background-color: yellow; /* Updated: add a visible background color */
+    color: black; /* Ensure text is visible against the background */
+    transition: all 0.2s;
+    position: relative;
+}
+.highlighted-entity:hover {
+    filter: brightness(90%);
+}
+.highlighted-entity:hover::after {
+    content: attr(data-entity-type);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+}

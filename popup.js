@@ -113,8 +113,8 @@ function renderAnalyzeTab() {
     } else if (isAnalyzing) {
         content.appendChild(createElement('p', { class: 'mb-2' }, 'Analysis in progress...'));
         const progressBar = createElement('div', { class: 'w-full bg-gray-200 rounded-full h-2.5 mb-4' });
-        const progressFill = createElement('div', { 
-            class: 'bg-blue-600 h-2.5 rounded-full', 
+        const progressFill = createElement('div', {
+            class: 'bg-blue-600 h-2.5 rounded-full',
             style: `width: ${progress}%`
         });
         progressBar.appendChild(progressFill);
@@ -135,10 +135,10 @@ function renderAnalyzeTab() {
         content.appendChild(entityChartsContainer);
 
         const averageBiasScore = analysisData.reduce((sum, item) => sum + item.biasScore, 0) / analysisData.length;
-        const normalizedBiasScore = averageBiasScore * 100; 
+        const normalizedBiasScore = averageBiasScore * 100;
 
-        createDonutChart('biasScoreChart', 
-            [normalizedBiasScore, 100 - normalizedBiasScore], 
+        createDonutChart('biasScoreChart',
+            [normalizedBiasScore, 100 - normalizedBiasScore],
             ['Biased', 'Neutral'],
             ['#FF6384', '#36A2EB']
         );
@@ -168,7 +168,6 @@ function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-
 function highlightEntities(sentence, entities) {
     if (!entities || Object.keys(entities).length === 0) {
         return sentence;
@@ -177,10 +176,10 @@ function highlightEntities(sentence, entities) {
     let highlightedSentence = sentence;
     const entityMap = new Map();
 
-    // map words ot entity types
+    // map words to entity types
     Object.entries(entities).forEach(([entityType, entityList]) => {
         entityList.forEach(entity => {
-            const entityText = entity.words.map(w => w.word.replace(/^##/, '')).join(' ').toLowerCase();
+            const entityText = entity.words.map(w => w.word.replace(/^##/, '')).join(' ');
             entityMap.set(entityText, entityType);
         });
     });
@@ -191,8 +190,8 @@ function highlightEntities(sentence, entities) {
         const entityType = entityMap.get(entityText);
         const escapedEntityText = escapeRegExp(entityText);
         const regex = new RegExp(`\\b${escapedEntityText}\\b`, 'gi');
-        highlightedSentence = highlightedSentence.replace(regex, match => 
-            `<span class="highlighted-entity" data-entity-type="${entityType}">${match}</span>`
+        highlightedSentence = highlightedSentence.replace(regex, match =>
+            `<span class="highlighted-entity" data-entity-type="${entityType}" style="background-color: ${ENTITY_COLORS[entityType]};">${match}</span>`
         );
     });
 
@@ -277,7 +276,7 @@ function renderExploreTab() {
     }
 }
 
-// swithc tabs
+// switch tabs
 function setActiveTab(tab) {
     activeTab = tab;
     renderTabs();
@@ -288,7 +287,7 @@ function setActiveTab(tab) {
     }
 }
 
-// rab buttons
+// tab buttons
 function renderTabs() {
     const tabButtons = document.getElementById('tab-buttons');
     tabButtons.innerHTML = '';
@@ -346,8 +345,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Load data from storage
         chrome.storage.local.get(['analysisData', 'entityCounts', 'normalizedEntityCounts', 'analysisTimestamp', 'pageTitle', 'pageUrl'], (result) => {
-            if (result.analysisData && 
-                result.pageUrl === pageUrl && 
+            if (result.analysisData &&
+                result.pageUrl === pageUrl &&
                 Date.now() - result.analysisTimestamp < 30 * 60 * 1000) {
                 analysisData = result.analysisData;
                 entityCounts = result.entityCounts;
