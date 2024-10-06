@@ -1,18 +1,18 @@
 const API_ENDPOINTS = {
     binaryClassification: "https://e29pozks7ptdl5gw.us-east-1.aws.endpoints.huggingface.cloud",
-    nerClassification: "https://mo5fr3ll9qufbwuy.us-east-1.aws.endpoints.huggingface.cloud"
+    nerClassification: "https://mo5fr3ll9qufbwuy.us-east-1.aws.endpoints.huggingface.cloud",
+    aspectsClassification: "https://t41xs75wejr14zht.us-east-1.aws.endpoints.huggingface.cloud"
 };
-
 
 async function makeApiCall(endpoint, data) {
     console.log(`Making API call to ${endpoint}`, data);
     const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
+        method: "POST",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
     });
     const result = await response.json();
     console.log(`API response:`, result);
@@ -81,31 +81,61 @@ function parseEntities(nerOutput) {
     console.log("Entity counts:", entityCounts);
     return { entities, entityCounts };
 }
+
+async function parseAspects(aspectsOutput) {
+    // apply 0.5 threshold
+    // we could setup individual thresholds for each aspect
+    const aspects = {};
+    for (const aspect of aspectsOutput) {
+        if (aspect.score > 0.5) {
+            aspects[aspect.label] = aspect.score;
+        }
+    }
+    return aspects;
+}
   
 async function processSentence(sentence) {
     console.log("Processing sentence:", sentence);
+
+    // run through binary classification model
     const binaryClassification = await makeApiCall(API_ENDPOINTS.binaryClassification, {
     "inputs": sentence
     });
 
     if (binaryClassification[0]?.label === "BIASED" && binaryClassification[0]?.score > 0.5) {
-    const nerClassification = await makeApiCall(API_ENDPOINTS.nerClassification, {
-        "inputs": sentence
-    });
+        
+        // run through GUS-Net model
+        const nerClassification = await makeApiCall(API_ENDPOINTS.nerClassification, {
+            "inputs": sentence,
+            "parameters": {
+                "top_k": 2
+            }
+        });
+        const { entities, entityCounts } = parseEntities(nerClassification);
 
-    const { entities, entityCounts } = parseEntities(nerClassification);
+        // run through aspects model
+        const aspectsScores = await makeApiCall(API_ENDPOINTS.aspectsClassification, {
+            "inputs": sentence,
+            "parameters": {
+                "top_k": 11
+            }
+        });
+        const aspects = await parseAspects(aspectsScores);
 
-    const result = {
-        sentence,
-        biasScore: binaryClassification[0].score,
-        entities: entities,
-        entityCounts: entityCounts
-    };
-    console.log("Processed sentence result:", result);
-    return result;
+        // assemble return dict for sentence
+        const result = {
+            sentence,
+            biasScore: binaryClassification[0].score,
+            entities: entities,
+            entityCounts: entityCounts,
+            aspects: aspects // list of dicts with aspect:score
+        };
+
+        console.log("Processed sentence result:", result);
+        return result;
     }
 
-    console.log("Sentence not biased enough");
+    console.log("Sentence not biased");
     return null;
 }
   

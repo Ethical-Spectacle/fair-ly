@@ -99,6 +99,78 @@ function createCircularFillChart(canvasId, value, maxValue, label, color) {
     ctx.fillText(`${(value * 100).toFixed(2)}%`, centerX, centerY + 15);
 }
 
+// create bubble chart of bias aspects
+function createBubbleChart(canvasId, data) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const maxRadius = Math.min(centerX, centerY) * 0.4;
+
+    // Sort data by value so the largest bubbles are drawn first
+    data.sort((a, b) => b.value - a.value);
+
+    const bubbles = [];
+
+    // Helper function to check if a bubble overlaps with existing bubbles
+    function isOverlapping(x, y, radius) {
+        for (const bubble of bubbles) {
+            const dx = bubble.x - x;
+            const dy = bubble.y - y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < bubble.radius + radius) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Place each bubble in a non-overlapping position
+    data.forEach((item) => {
+        const radius = maxRadius * Math.sqrt(item.value / Math.max(...data.map(d => d.value)));
+
+        let angle = Math.random() * 2 * Math.PI; // Start at a random angle
+        let distance = 0;
+
+        let x, y;
+        let foundPosition = false;
+
+        while (!foundPosition) {
+            x = centerX + distance * Math.cos(angle);
+            y = centerY + distance * Math.sin(angle);
+
+            if (!isOverlapping(x, y, radius) && x - radius > 0 && x + radius < canvas.width && y - radius > 0 && y + radius < canvas.height) {
+                foundPosition = true;
+            } else {
+                angle += Math.PI / 8; // Increment angle to try a new position
+                if (angle >= 2 * Math.PI) {
+                    angle = 0;
+                    distance += 5; // Increase the distance from the center
+                }
+            }
+        }
+
+        bubbles.push({ x, y, radius });
+
+        // Draw the bubble
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        ctx.closePath();
+        ctx.fillStyle = item.color;
+        ctx.fill();
+
+        // Draw the label (aspect name and count)
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.aspect, x, y - 10); // Draw the aspect name above the count
+        ctx.fillText(item.value, x, y + 10); // Draw the count below the aspect name
+    });
+}
+
 // render the Analyze tab
 function renderAnalyzeTab() {
     const content = document.getElementById('content');
@@ -122,9 +194,11 @@ function renderAnalyzeTab() {
     } else if (analysisData && analysisData.length > 0) {
         content.appendChild(createElement('h2', { class: "text-xl font-bold mb-4" }, "Analysis Results"));
         
+        // create bias score canvas
         const biasScoreCanvas = createElement('canvas', { id: 'biasScoreChart', width: '200', height: '200', class: 'mb-4' });
         content.appendChild(biasScoreCanvas);
 
+        // create entity charts container/canvases
         const entityChartsContainer = createElement('div', { class: 'flex justify-between mb-4' });
         const genCanvas = createElement('canvas', { id: 'genChart', width: '150', height: '150' });
         const unfairCanvas = createElement('canvas', { id: 'unfairChart', width: '150', height: '150' });
@@ -134,24 +208,66 @@ function renderAnalyzeTab() {
         entityChartsContainer.appendChild(stereoCanvas);
         content.appendChild(entityChartsContainer);
 
+        // create aspects bubble chart canvas
+        const aspectsCanvas = createElement('canvas', { id: 'aspectsChart', width: '300', height: '300' });
+        content.appendChild(aspectsCanvas);
+
+        // calculate Fair-ly score (right now, it's just avg bias score of biased sentences, not even helpful)
         const averageBiasScore = analysisData.reduce((sum, item) => sum + item.biasScore, 0) / analysisData.length;
         const normalizedBiasScore = averageBiasScore * 100;
 
+        // render bias aspects bubble chart
         createDonutChart('biasScoreChart',
             [normalizedBiasScore, 100 - normalizedBiasScore],
-            ['Biased', 'Neutral'],
+            ['Biased', 'Fair'],
             ['#FF6384', '#36A2EB']
         );
 
+        // change this to something smarter
         const maxNormalizedEntityCount = Math.max(
             normalizedEntityCounts['GEN'],
             normalizedEntityCounts['UNFAIR'],
             normalizedEntityCounts['STEREO']
         );
 
-        createCircularFillChart('genChart', normalizedEntityCounts['GEN'], maxNormalizedEntityCount, 'Generalizations', '#FF6384');
-        createCircularFillChart('unfairChart', normalizedEntityCounts['UNFAIR'], maxNormalizedEntityCount, 'Unfairness', '#36A2EB');
-        createCircularFillChart('stereoChart', normalizedEntityCounts['STEREO'], maxNormalizedEntityCount, 'Stereotypes', '#FFCE56');
+        // render GUS-Net charts
+        createCircularFillChart('genChart', normalizedEntityCounts['GEN'], maxNormalizedEntityCount, 'Generalizations', ENTITY_COLORS['GEN']);
+        createCircularFillChart('unfairChart', normalizedEntityCounts['UNFAIR'], maxNormalizedEntityCount, 'Unfairness', ENTITY_COLORS['UNFAIR']);
+        createCircularFillChart('stereoChart', normalizedEntityCounts['STEREO'], maxNormalizedEntityCount, 'Stereotypes', ENTITY_COLORS['STEREO']);
+
+        // render aspects bubble chart
+        const aspectCounts = {};
+        analysisData.forEach(sentence => {
+            const aspects = sentence.aspects;
+            for (const [aspect, score] of Object.entries(aspects)) {
+                if (aspectCounts[aspect]) {
+                    aspectCounts[aspect] += 1;
+                } else {
+                    aspectCounts[aspect] = 1;
+                }
+            }
+        });
+        const ASPECT_COLORS = {
+            "racial": "#ff0000", // Red
+            "religious": "#8b4513", // Brown
+            "gender": "#800080", // Purple
+            "age": "#ffa500", // Orange
+            "nationality": "#0000ff", // Blue
+            "sexuality": "#ff69b4", // Pink
+            "socioeconomic": "#006400", // Dark Green
+            "educational": "#ffff00", // Yellow
+            "disability": "#87cefa", // Light Blue
+            "political": "#ff6347", // Light Red
+            "physical": "#90ee90" // Light Green
+        };
+        
+        
+        const aspectsData = Object.entries(aspectCounts).map(([aspect, count]) => ({
+            aspect: aspect,
+            value: count,
+            color: ASPECT_COLORS[aspect] || '#000000', // Default color if not specified
+        }));
+        createBubbleChart('aspectsChart', aspectsData);
 
         // Display summary
         content.appendChild(createElement('p', { class: 'mt-4' }, `Average Bias Score: ${averageBiasScore.toFixed(2)}`));
@@ -159,6 +275,7 @@ function renderAnalyzeTab() {
         content.appendChild(createElement('p', {}, `Generalizations: ${entityCounts['GEN']}`));
         content.appendChild(createElement('p', {}, `Unfairness: ${entityCounts['UNFAIR']}`));
         content.appendChild(createElement('p', {}, `Stereotypes: ${entityCounts['STEREO']}`));
+
     } else {
         content.appendChild(createElement('p', {}, "No analysis data available or an error occurred."));
     }
