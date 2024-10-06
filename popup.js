@@ -178,28 +178,28 @@ function renderAnalyzeTab() {
 
     if (!analysisData && !isAnalyzing) {
         const button = createElement('button', {
-            class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded",
+            class: "bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-all duration-300",
             onclick: runAnalysis
         }, `Run Analysis on "${pageTitle || 'current page'}"`);
         content.appendChild(button);
     } else if (isAnalyzing) {
-        content.appendChild(createElement('p', { class: 'mb-2' }, 'Analysis in progress...'));
-        const progressBar = createElement('div', { class: 'w-full bg-gray-200 rounded-full h-2.5 mb-4' });
+        content.appendChild(createElement('p', { class: 'mb-4 text-lg text-center text-gray-700' }, 'Analysis in progress...'));
+        const progressBar = createElement('div', { class: 'w-full bg-gray-300 rounded-full h-4 mb-6 overflow-hidden' });
         const progressFill = createElement('div', {
-            class: 'bg-blue-600 h-2.5 rounded-full',
+            class: 'bg-blue-500 h-full rounded-full transition-all duration-300',
             style: `width: ${progress}%`
         });
         progressBar.appendChild(progressFill);
         content.appendChild(progressBar);
     } else if (analysisData && analysisData.length > 0) {
-        content.appendChild(createElement('h2', { class: "text-xl font-bold mb-4" }, "Analysis Results"));
-        
+        content.appendChild(createElement('h2', { class: "text-2xl font-bold mb-6 text-blue-600" }, "Analysis Results"));
+
         // create bias score canvas
-        const biasScoreCanvas = createElement('canvas', { id: 'biasScoreChart', width: '200', height: '200', class: 'mb-4' });
+        const biasScoreCanvas = createElement('canvas', { id: 'biasScoreChart', width: '200', height: '200', class: 'mb-8 mx-auto' });
         content.appendChild(biasScoreCanvas);
 
         // create entity charts container/canvases
-        const entityChartsContainer = createElement('div', { class: 'flex justify-between mb-4' });
+        const entityChartsContainer = createElement('div', { class: 'grid grid-cols-3 gap-4 mb-8' });
         const genCanvas = createElement('canvas', { id: 'genChart', width: '150', height: '150' });
         const unfairCanvas = createElement('canvas', { id: 'unfairChart', width: '150', height: '150' });
         const stereoCanvas = createElement('canvas', { id: 'stereoChart', width: '150', height: '150' });
@@ -209,7 +209,7 @@ function renderAnalyzeTab() {
         content.appendChild(entityChartsContainer);
 
         // create aspects bubble chart canvas
-        const aspectsCanvas = createElement('canvas', { id: 'aspectsChart', width: '300', height: '300' });
+        const aspectsCanvas = createElement('canvas', { id: 'aspectsChart', width: '300', height: '300', class: 'mx-auto' });
         content.appendChild(aspectsCanvas);
 
         // calculate Fair-ly score (right now, it's just avg bias score of biased sentences, not even helpful)
@@ -260,8 +260,7 @@ function renderAnalyzeTab() {
             "political": "#ff6347", // Light Red
             "physical": "#90ee90" // Light Green
         };
-        
-        
+
         const aspectsData = Object.entries(aspectCounts).map(([aspect, count]) => ({
             aspect: aspect,
             value: count,
@@ -270,12 +269,11 @@ function renderAnalyzeTab() {
         createBubbleChart('aspectsChart', aspectsData);
 
         // Display summary
-        content.appendChild(createElement('p', { class: 'mt-4' }, `Average Bias Score: ${averageBiasScore.toFixed(2)}`));
-        content.appendChild(createElement('p', {}, `Total Biased Sentences: ${analysisData.length}`));
-        content.appendChild(createElement('p', {}, `Generalizations: ${entityCounts['GEN']}`));
-        content.appendChild(createElement('p', {}, `Unfairness: ${entityCounts['UNFAIR']}`));
-        content.appendChild(createElement('p', {}, `Stereotypes: ${entityCounts['STEREO']}`));
-
+        content.appendChild(createElement('p', { class: 'mt-8 text-lg text-center' }, `Average Bias Score: ${averageBiasScore.toFixed(2)}`));
+        content.appendChild(createElement('p', { class: 'mt-2 text-center' }, `Total Biased Sentences: ${analysisData.length}`));
+        content.appendChild(createElement('p', { class: 'text-center' }, `Generalizations: ${entityCounts['GEN']}`));
+        content.appendChild(createElement('p', { class: 'text-center' }, `Unfairness: ${entityCounts['UNFAIR']}`));
+        content.appendChild(createElement('p', { class: 'text-center' }, `Stereotypes: ${entityCounts['STEREO']}`));
     } else {
         content.appendChild(createElement('p', {}, "No analysis data available or an error occurred."));
     }
@@ -306,7 +304,7 @@ function highlightEntities(sentence, entities) {
     sortedEntityTexts.forEach(entityText => {
         const entityType = entityMap.get(entityText);
         const escapedEntityText = escapeRegExp(entityText);
-        const regex = new RegExp(`\\b${escapedEntityText}\\b`, 'gi');
+        const regex = new RegExp(`\b${escapedEntityText}\b`, 'gi');
         highlightedSentence = highlightedSentence.replace(regex, match =>
             `<span class="highlighted-entity" data-entity-type="${entityType}" style="background-color: ${ENTITY_COLORS[entityType]};">${match}</span>`
         );
@@ -316,81 +314,63 @@ function highlightEntities(sentence, entities) {
 }
 
 function renderExploreTab() {
-    console.log("Entering renderExploreTab function");
     const content = document.getElementById('content');
     content.innerHTML = '';
 
     if (!analysisData || analysisData.length === 0) {
-        console.log("No analysis data available");
         content.appendChild(createElement('p', {}, "No analysis data available. Please run an analysis first."));
         return;
     }
 
-    console.log("Analysis data:", analysisData);
+    const sortedData = [...analysisData].sort((a, b) => b.biasScore - a.biasScore);
+    const list = createElement('ul', { class: "space-y-4" });
 
-    try {
-        const sortedData = [...analysisData].sort((a, b) => b.biasScore - a.biasScore);
-        console.log("Sorted data:", sortedData);
+    sortedData.forEach((item) => {
+        const listItem = createElement('li', { class: "p-4 border rounded-md shadow-sm hover:shadow-md transition-shadow duration-300" });
 
-        const list = createElement('ul', { class: "space-y-4" });
+        if (item.sentence) {
+            const highlightedSentence = highlightEntities(item.sentence, item.entities);
+            const sentenceElem = createElement('p', { class: "mb-2 text-lg leading-relaxed" });
+            sentenceElem.innerHTML = highlightedSentence;
+            listItem.appendChild(sentenceElem);
+        } else {
+            listItem.appendChild(createElement('p', { class: "mb-2 text-red-500" }, "Error: Missing sentence"));
+        }
 
-        sortedData.forEach((item, index) => {
-            console.log(`Processing item ${index}:`, item);
+        listItem.appendChild(createElement('p', { class: "text-sm text-gray-600 mb-2" }, `Bias score: ${item.biasScore.toFixed(2)}`));
 
-            const listItem = createElement('li', { class: "p-4 border rounded shadow-sm hover:shadow-md transition-shadow duration-200" });
+        list.appendChild(listItem);
+    });
 
-            if (item.sentence) {
-                console.log(`Sentence for item ${index}:`, item.sentence);
-                const highlightedSentence = highlightEntities(item.sentence, item.entities);
-                console.log(`Highlighted sentence for item ${index}:`, highlightedSentence);
-                const sentenceElem = createElement('p', { class: "mb-2 text-lg leading-relaxed" });
-                sentenceElem.innerHTML = highlightedSentence;
-                listItem.appendChild(sentenceElem);
-            } else {
-                console.error(`Missing sentence for item ${index}:`, item);
-                listItem.appendChild(createElement('p', { class: "mb-2 text-red-500" }, "Error: Missing sentence"));
-            }
+    content.appendChild(list);
 
-            listItem.appendChild(createElement('p', { class: "text-sm text-gray-600 mb-2" }, `Bias score: ${item.biasScore.toFixed(2)}`));
-
-            list.appendChild(listItem);
-        });
-
-        content.appendChild(list);
-
-        // Add CSS for hover effect and tooltip
-        const style = document.createElement('style');
-        style.textContent = `
-            .highlighted-entity {
-                padding: 2px 4px;
-                border-radius: 2px;
-                transition: all 0.2s;
-                position: relative;
-            }
-            .highlighted-entity:hover {
-                filter: brightness(90%);
-            }
-            .highlighted-entity:hover::after {
-                content: attr(data-entity-type);
-                position: absolute;
-                bottom: 100%;
-                left: 50%;
-                transform: translateX(-50%);
-                background-color: #333;
-                color: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 12px;
-                white-space: nowrap;
-            }
-        `;
-        document.head.appendChild(style);
-
-        console.log("Finished rendering explore tab");
-    } catch (error) {
-        console.error("Error in renderExploreTab:", error);
-        content.appendChild(createElement('p', { class: "text-red-500" }, `An error occurred: ${error.message}`));
-    }
+    // Add CSS for hover effect and tooltip
+    const style = document.createElement('style');
+    style.textContent = `
+        .highlighted-entity {
+            padding: 2px 4px;
+            border-radius: 2px;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .highlighted-entity:hover {
+            filter: brightness(90%);
+        }
+        .highlighted-entity:hover::after {
+            content: attr(data-entity-type);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 // switch tabs
@@ -410,7 +390,7 @@ function renderTabs() {
     tabButtons.innerHTML = '';
     ['analyze', 'explore'].forEach(tab => {
         const button = createElement('button', {
-            class: `mr-2 ${activeTab === tab ? 'bg-blue-500 text-white' : 'bg-gray-200'} px-4 py-2 rounded`,
+            class: `mr-2 px-4 py-2 rounded-md transition-all duration-300 ${activeTab === tab ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`,
             onclick: () => setActiveTab(tab)
         }, tab.charAt(0).toUpperCase() + tab.slice(1));
         tabButtons.appendChild(button);

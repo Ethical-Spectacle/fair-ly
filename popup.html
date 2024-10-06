@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Social Bias Analyzer</title>
-    <link href="styles.css" rel="stylesheet">
+    <link href="libs/tailwind.min.css" rel="stylesheet">
 </head>
-<body>
-    <div id="root" class="w-128 p-4">
-        <h1 class="text-2xl font-bold mb-4">Social Bias Analyzer</h1>
-        <div id="tab-buttons" class="mb-4"></div>
+<body class="bg-gray-100 text-gray-900 font-sans">
+    <div id="root" class="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-md mt-6">
+        <h1 class="text-3xl font-semibold mb-6 text-center text-blue-700">Social Bias Analyzer</h1>
+        <div id="tab-buttons" class="mb-6 flex justify-center"></div>
         <div id="content"></div>
     </div>
     <script src="popup.js"></script>
