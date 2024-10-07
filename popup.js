@@ -1,16 +1,7 @@
-// popup.js
-import {
-  createElement,
-  escapeRegExp,
-  highlightEntities,
-  ENTITY_COLORS,
-} from "./helpers.js";
-import {
-  createDonutChart,
-  createCircularFillChart,
-  createBubbleChart,
-} from "./charts.js";
-let activeTab = "analyze";
+import { createElement, escapeRegExp, highlightEntities, ENTITY_COLORS } from './helpers.js';
+import { createDonutChart, createCircularFillChart, createBubbleChart } from './charts.js';
+
+let activeTab = 'analyze';
 let analysisData = null;
 let entityCounts = null;
 let normalizedEntityCounts = null;
@@ -228,13 +219,10 @@ function renderAnalyzeTab() {
         });
         content.appendChild(aspectsCanvas);
 
-        const averageBiasScore = analysisData.reduce((sum, item) => sum + item.biasScore, 0) / analysisData.length;
-        const normalizedBiasScore = averageBiasScore * 100;
-
-        createDonutChart('biasScoreChart', [normalizedBiasScore, 100 - normalizedBiasScore], ['Biased', 'Fair'], ['#FF6384', '#36A2EB']);
-        createCircularFillChart('genChart', normalizedEntityCounts['GEN'], 1, 'Generalizations', ENTITY_COLORS['GEN']);
-        createCircularFillChart('unfairChart', normalizedEntityCounts['UNFAIR'], 1, 'Unfairness', ENTITY_COLORS['UNFAIR']);
-        createCircularFillChart('stereoChart', normalizedEntityCounts['STEREO'], 1, 'Stereotypes', ENTITY_COLORS['STEREO']);
+        createDonutChart('biasScoreChart', numBiasedSentences, totalSentences, ['#FF6384', '#36A2EB']);
+        createCircularFillChart('genChart', entityCounts['GEN'], totalSentences, 'Generalizations', ENTITY_COLORS['GEN']);
+        createCircularFillChart('unfairChart', entityCounts['UNFAIR'], totalSentences, 'Unfairness', ENTITY_COLORS['UNFAIR']);
+        createCircularFillChart('stereoChart', entityCounts['STEREO'], totalSentences, 'Stereotypes', ENTITY_COLORS['STEREO']);
 
         const aspectCounts = {};
         analysisData.forEach(sentence => {
@@ -288,25 +276,23 @@ function renderExploreTab() {
       margin: "0",
     });
 
-        // cards for each sentence
-    sortedData.forEach((item) => {
-      const listItem = createElement("li", {});
-      applyStyles(listItem, {
-        padding: "1rem",
-        border: "1px solid #e5e7eb",
-        borderRadius: "0.375rem",
-        backgroundColor: "#ffffff",
-        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-        transition: "box-shadow 0.3s ease",
-        marginBottom: "1rem",
-      });
-      listItem.onmouseover = () => {
-        listItem.style.boxShadow =
-          "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)";
-      };
-      listItem.onmouseout = () => {
-        listItem.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.05)";
-      };
+        sortedData.forEach((item) => {
+            const listItem = createElement('li', {});
+            applyStyles(listItem, {
+                padding: '1rem',
+                border: '1px solid #e5e7eb',
+                borderRadius: '0.375rem',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                transition: 'box-shadow 0.3s ease',
+                marginBottom: '1rem'
+            });
+            listItem.onmouseover = () => {
+                listItem.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
+            };
+            listItem.onmouseout = () => {
+                listItem.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+            };
 
       if (item.sentence) {
         const highlightedSentence = highlightEntities(
@@ -400,7 +386,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAnalyzeTab();
 
         chrome.storage.local.get(['analysisData', 'entityCounts', 'normalizedEntityCounts', 'totalSentences', 'analysisTimestamp', 'pageTitle', 'pageUrl'], (result) => {
-            // console.log(totalSentences);
             if (result.analysisData &&
                 result.pageUrl === pageUrl &&
                 Date.now() - result.analysisTimestamp < 30 * 60 * 1000) {
