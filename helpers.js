@@ -1,5 +1,3 @@
-// helpers.js
-
 // Define ENTITY_COLORS
 export const ENTITY_COLORS = {
     GEN: '#FFB3BA',   // pink
