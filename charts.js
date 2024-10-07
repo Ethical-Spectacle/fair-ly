@@ -39,8 +39,15 @@ export function createDonutChart(canvasId, biasedCount, totalSentences, colors) 
                     bodyColor: '#ffffff',
                     borderColor: '#666',
                     borderWidth: 1,
-                    cornerRadius: 6
+                    cornerRadius: 6,
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            return `${value.toFixed(1)}%`;
+                        }
+                    }
                 }
+                
             },
             animation: {
                 animateRotate: true,
@@ -65,7 +72,7 @@ export function createCircularFillChart(canvasId, value, maxValue, count, color)
         return;
     }
 
-    new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Detected'],
@@ -95,93 +102,63 @@ export function createCircularFillChart(canvasId, value, maxValue, count, color)
             },
             animation: {
                 animateRotate: true,
-                animateScale: true
+                animateScale: true,
+                onProgress: function(animation) {
+                    // Draw the count value in the center
+                    const { width, height } = chart;
+                    const centerX = width / 2;
+                    const centerY = height / 1.3; // Adjusted for semicircle
+            
+                    // Clear the canvas before drawing the new frame
+                    ctx.clearRect(0, 0, width, height);
+                    // Redraw the chart background (optional if you need to redraw the existing state)
+                    chart.draw();
+            
+                    // Draw the count value
+                    ctx.save();
+                    ctx.font = 'bold 2em Arial'; // Increase the font size here (e.g., '2em' or '30px')
+                    ctx.fillStyle = '#4a4a4a'; // Dark gray text color
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(count.toString(), centerX, centerY);
+                    ctx.restore();
+                }
             }
+            
+            
         }
     });
 }
 
-export function createBubbleChart(canvasId, data) {
+export function createRadarChart(canvasId, data) {
     const ctx = document.getElementById(canvasId).getContext('2d');
 
-    // Function to check the overlapping distance between two circles
-    function overlapDistance(circle1, circle2) {
-        const dx = circle1.x - circle2.x;
-        const dy = circle1.y - circle2.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        return Math.max(0, (circle1.r + circle2.r) - distance); // Return positive overlap distance or zero
-    }
+    const labels = data.map(item => item.aspect); // Aspects will be the labels on radar chart
+    const values = data.map(item => item.value);  // Aspect counts will be the data points
 
-    // Function to find a position for a new bubble that does not overlap with existing bubbles
-    function findBestPosition(existingBubbles, radius) {
-        let bestPosition = { x: 50, y: 25 }; // Default to center of the chart
-        let minTotalOverlap = Infinity;
-        let bestScore = 0;
+    // Define colors for the radar chart
+    const backgroundColor = 'rgba(54, 162, 235, 0.2)'; // Light blue background for radar
+    const borderColor = 'rgba(54, 162, 235, 1)'; // Blue border for radar
 
-        for (let i = 0; i < 1000; i++) { // Try up to 1000 random positions
-            const x = Math.random() * (100 - 2 * radius) + radius; // Ensure x stays within the boundary based on radius
-            const y = Math.random() * (50 - 2 * radius) + radius; // Ensure y stays within the boundary based on radius
-            const newBubble = { x, y, r: radius };
-
-            // Calculate total overlap for this position
-            let totalOverlap = 0;
-            for (const existingBubble of existingBubbles) {
-                totalOverlap += overlapDistance(existingBubble, newBubble);
-            }
-
-            // If there is no overlap and the bubble is fully inside, return immediately
-            if (totalOverlap === 0 && x - radius >= 0 && x + radius <= 100 && y - radius >= 0 && y + radius <= 50) {
-                return { x, y };
-            }
-
-            // Calculate how much of the bubble is within the boundaries
-            let boundaryScore = Math.min(x - radius, 100 - (x + radius), y - radius, 50 - (y + radius));
-            boundaryScore = Math.max(boundaryScore, 0); // Ensure score is not negative
-
-            // Track the position with the least overlap and most within the boundary
-            if (totalOverlap < minTotalOverlap || (totalOverlap === minTotalOverlap && boundaryScore > bestScore)) {
-                minTotalOverlap = totalOverlap;
-                bestScore = boundaryScore;
-                bestPosition = { x, y };
-            }
-        }
-
-        // Return the position with the least overlap and most within the boundary
-        return bestPosition;
-    }
-
-    // Prepare the bubble chart data with non-overlapping positions
-    const existingBubbles = [];
-
-    const bubbleData = {
-        datasets: data.map((item) => {
-            const radius = item.value * 10;
-            const { x, y } = findBestPosition(existingBubbles, radius);
-            existingBubbles.push({ x, y, r: radius });
-
-            return {
-                label: item.aspect,
-                data: [{ x, y, r: radius }],
-                backgroundColor: item.color,
-                borderColor: darkenColor(item.color, 20),
-                borderWidth: 1
-            };
-        })
-    };
-
-    // Create the bubble chart using Chart.js
     new Chart(ctx, {
-        type: 'bubble',
-        data: bubbleData,
+        type: 'radar',
+        data: {
+            labels: labels, // Labels for each aspect
+            datasets: [{
+                label: 'Aspect Occurrences',
+                data: values, // Data points for each aspect
+                backgroundColor: backgroundColor,
+                borderColor: borderColor,
+                pointBackgroundColor: borderColor,
+                borderWidth: 2
+            }]
+        },
         options: {
             responsive: true,
-            maintainAspectRatio: false, // Allow full resizing
-            layout: {
-                padding: 0 // Remove any internal padding to use the full area
-            },
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'bottom',
+                    position: 'none',
                     labels: {
                         color: '#4a4a4a',
                         font: {
@@ -193,23 +170,28 @@ export function createBubbleChart(canvasId, data) {
                     enabled: true,
                     callbacks: {
                         label: function (context) {
-                            const label = context.dataset.label || '';
-                            const r = context.raw.r / 10;  // Divide by 10 to show the original count
-                            return `${label}: ${r} occurrences`;
+                            const value = context.raw;
+                            return `${context.label}: ${value} occurrences`;
                         }
                     }
                 }
             },
             scales: {
-                x: {
-                    display: false,  // Hide x-axis for simplicity
-                    min: 0,
-                    max: 100  // Use full range to avoid clipping at the edges
-                },
-                y: {
-                    display: false,  // Hide y-axis for simplicity
-                    min: 0,
-                    max: 50  // Reduced range to make the chart shorter while keeping bubbles within bounds
+                r: {
+                    angleLines: {
+                        display: true
+                    },
+                    suggestedMin: 0, // Ensure minimum value is 0
+                    suggestedMax: Math.max(...values) + 2, // Add some buffer to the maximum value
+                    grid: {
+                        color: 'rgba(200, 200, 200, 0.3)'
+                    },
+                    pointLabels: {
+                        font: {
+                            size: 12
+                        },
+                        color: '#4a4a4a'
+                    }
                 }
             }
         }
@@ -217,7 +199,57 @@ export function createBubbleChart(canvasId, data) {
 }
 
 
+export function createMiniDonutChart(canvasId, biasedScore) {
+    const canvas = document.getElementById(canvasId);
 
+    if (!canvas) {
+        console.error(`Canvas with ID "${canvasId}" not found.`);
+        return;  // Exit early if the canvas is not found
+    }
+
+    const ctx = canvas.getContext('2d');    
+
+    const chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [(biasedScore * 100), 100 - (biasedScore*100)], // Bias and remainder
+                backgroundColor: ['#ff6164', '#e0e0e0'],  // Red for bias, light gray for remainder
+                borderWidth: 0,  // No border
+            }]
+        },
+        options: {
+            responsive: false, // Disable responsiveness since it's a fixed size
+            maintainAspectRatio: true,
+            cutout: '75%', // Make the inner circle bigger for placing the text
+            plugins: {
+                legend: { display: false },  // Hide the legend
+                tooltip: { enabled: false }, // Disable tooltips
+            },
+            hover: {
+                mode: null // Disable any hover effect
+            },
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                onComplete: function() {
+                    // Draw the bias percentage in the center
+                    const { width, height } = chart;
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+
+                    ctx.save();
+                    ctx.font = 'bold 10px Arial'; // Font size for bias score
+                    ctx.fillStyle = '#4a4a4a'; // Dark gray text color
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(biasedScore.toFixed(2), centerX, centerY); // Display bias percentage
+                    ctx.restore();
+                }
+            }
+        }
+    });
+}
 
 
 
@@ -236,5 +268,3 @@ function darkenColor(color, percent) {
       (B < 255 ? (B < 1 ? 0 : B) : 255)
     ).toString(16).slice(1);
 }
-
-

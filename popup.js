@@ -1,5 +1,5 @@
 import { createElement, escapeRegExp, highlightEntities, ENTITY_COLORS } from './helpers.js';
-import { createDonutChart, createCircularFillChart, createBubbleChart } from './charts.js';
+import { createDonutChart, createCircularFillChart, createRadarChart, createMiniDonutChart } from './charts.js';
 
 let activeTab = 'analyze';
 let analysisData = null;
@@ -206,7 +206,7 @@ function renderAnalyzeTab() {
       const entityChartsContainer = createElement('div', {});
       applyStyles(entityChartsContainer, {
           display: 'flex',
-          justifyContent: 'space-around',
+          justifyContent: 'space-between',
           margin: '1.5rem 0',
           flexWrap: 'wrap',
           width: '100%',
@@ -222,14 +222,13 @@ function renderAnalyzeTab() {
       entities.forEach(({ id, label, color, count }) => {
           const canvasContainer = createElement("div", {});
           applyStyles(canvasContainer, {
-              width: '30%', // Set fixed width
-              padding: '1rem',
+              width: '31%', // Set fixed width
+              padding: '5px',
               border: '1px solid #e5e7eb',
               borderRadius: '0.375rem',
               backgroundColor: '#ffffff',
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
               transition: 'box-shadow 0.3s ease',
-              marginBottom: '1.5rem',
               boxSizing: 'border-box',
               display: 'flex',
               flexDirection: 'column',
@@ -272,14 +271,15 @@ function renderAnalyzeTab() {
 
       content.appendChild(entityChartsContainer);
 
+
       // Now create the charts after they are appended to the DOM
       entities.forEach(({ id, label, color, count }) => {
-          createCircularFillChart(id, count, totalSentences, count, color);
+          createCircularFillChart(id, count, numBiasedSentences, count, color);
       });
 
-    // Add aspects bubble chart with card style
-    const bubbleChartContainer = createElement("div", {});
-    applyStyles(bubbleChartContainer, {
+    // Add aspects radar chart with card style
+    const radarChartContainer = createElement("div", {});
+    applyStyles(radarChartContainer, {
         padding: '1rem',
         border: '1px solid #e5e7eb',
         borderRadius: '0.375rem',
@@ -289,25 +289,24 @@ function renderAnalyzeTab() {
         marginBottom: '1.5rem',
         width: '100%',
         boxSizing: 'border-box',
-        height: '200px' // Specify the height explicitly
+        height: '300px' // Specify the height explicitly
     });
 
-    bubbleChartContainer.onmouseover = () => {
-        bubbleChartContainer.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
+    radarChartContainer.onmouseover = () => {
+        radarChartContainer.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
     };
-    bubbleChartContainer.onmouseout = () => {
-        bubbleChartContainer.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+    radarChartContainer.onmouseout = () => {
+        radarChartContainer.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
     };
 
-    const aspectsCanvas = document.createElement('canvas');
-    aspectsCanvas.id = 'aspectsChart';
-    applyStyles(aspectsCanvas, {
-        display: 'block',
+    const radarCanvas = document.createElement('canvas');
+    radarCanvas.id = 'aspectsChart';
+    applyStyles(radarCanvas, {
+        display: 'flex',
         width: '100%',
-        height: '100%' // Ensure the canvas fills the container height
     });
-    bubbleChartContainer.appendChild(aspectsCanvas);
-    content.appendChild(bubbleChartContainer);
+    radarChartContainer.appendChild(radarCanvas);
+    content.appendChild(radarChartContainer);
 
     // Create charts
     createDonutChart('biasScoreChart', numBiasedSentences, totalSentences, ['#ff6164', '#A2E09B']);
@@ -330,7 +329,7 @@ function renderAnalyzeTab() {
         color: ASPECT_COLORS[aspect] || '#000000',
     }));
 
-    createBubbleChart('aspectsChart', aspectsData);
+    createRadarChart('aspectsChart', aspectsData);
 
   } else {
       const paragraph = createElement('p', {}, "No analysis data available or an error occurred.");
@@ -338,9 +337,6 @@ function renderAnalyzeTab() {
       content.appendChild(paragraph);
   }
 }
-
-
-
 
 // Helper function to get the top counted aspect
 function getTopCountedAspect() {
@@ -360,103 +356,151 @@ function getTopCountedAspect() {
   return sortedAspects.length > 0 ? sortedAspects[0][0].toLowerCase() : 'any';
 }
 
-
-
-
-
 function renderExploreTab() {
-    const content = document.getElementById("content");
-    content.innerHTML = "";
+  const content = document.getElementById("content");
+  content.innerHTML = "";
 
-    if (!analysisData || analysisData.length === 0) {
-        const paragraph = createElement(
-            "p",
-            {},
-            "No analysis data available. Please run an analysis first."
-        );
-        applyStyles(paragraph, { textAlign: "center" });
-        content.appendChild(paragraph);
-        return;
-    }
+  if (!analysisData || analysisData.length === 0) {
+      const paragraph = createElement(
+          "p",
+          {},
+          "No analysis data available. Please run an analysis first."
+      );
+      applyStyles(paragraph, { textAlign: "center" });
+      content.appendChild(paragraph);
+      return;
+  }
 
-    try {
-        const sortedData = [...analysisData].sort(
-            (a, b) => b.biasScore - a.biasScore
-        );
+  try {
+      const sortedData = [...analysisData].sort(
+          (a, b) => b.biasScore - a.biasScore
+      );
 
-        const list = createElement("ul", {});
-        applyStyles(list, {
-            listStyleType: "none",
-            padding: "0",
-            margin: "0",
-        });
+      const list = createElement("ul", {});
+      applyStyles(list, {
+          listStyleType: "none",
+          padding: "0",
+          margin: "0",
+      });
 
-        sortedData.forEach((item) => {
-            const listItem = createElement('li', {});
-            applyStyles(listItem, {
-                padding: '1rem',
-                border: '1px solid #e5e7eb',
-                borderRadius: '0.375rem',
-                backgroundColor: '#ffffff',
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                transition: 'box-shadow 0.3s ease',
-                marginBottom: '1rem'
-            });
-            listItem.onmouseover = () => {
-                listItem.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
-            };
-            listItem.onmouseout = () => {
-                listItem.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
-            };
+      sortedData.forEach((item, index) => {
+          const listItem = createElement('li', {});
+          applyStyles(listItem, {
+              padding: '1rem',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.375rem',
+              backgroundColor: '#ffffff',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+              transition: 'box-shadow 0.3s ease',
+              marginBottom: '1rem',
+              position: 'relative',
+              overflow: 'hidden'
+          });
 
-            if (item.sentence) {
-                const highlightedSentence = highlightEntities(
-                    item.sentence,
-                    item.entities
-                );
-                const sentenceElem = createElement("p", {});
-                applyStyles(sentenceElem, {
-                    marginBottom: "0.5rem",
-                    fontSize: "1.125rem",
-                    lineHeight: "1.75rem",
-                });
-                sentenceElem.innerHTML = highlightedSentence;
-                listItem.appendChild(sentenceElem);
-            } else {
-                const errorElem = createElement("p", {}, "Error: Missing sentence");
-                applyStyles(errorElem, {
-                    marginBottom: "0.5rem",
-                    color: "#f87171",
-                });
-                listItem.appendChild(errorElem);
-            }
+          listItem.onmouseover = () => {
+              listItem.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
+          };
+          listItem.onmouseout = () => {
+              listItem.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+          };
 
-            const biasScoreElem = createElement(
-                "p",
-                {},
-                `Bias score: ${item.biasScore.toFixed(2)}`
-            );
-            applyStyles(biasScoreElem, {
-                fontSize: "0.875rem",
-                color: "#6b7280",
-                marginBottom: "0.5rem",
-            });
-            listItem.appendChild(biasScoreElem);
+          if (item.sentence) {
+              const highlightedSentence = highlightEntities(
+                  item.sentence,
+                  item.entities
+              );
+              const sentenceElem = createElement("p", {});
+              applyStyles(sentenceElem, {
+                  marginBottom: "0.5rem",
+                  fontSize: "1.125rem",
+                  lineHeight: "1.75rem",
+              });
+              sentenceElem.innerHTML = highlightedSentence;
+              listItem.appendChild(sentenceElem);
 
-            list.appendChild(listItem);
-        });
+              // Container for aspect tags and mini donut chart
+              const tagsAndMiniChartContainer = createElement('div', {});
+              applyStyles(tagsAndMiniChartContainer, {
+                  display: 'flex',              // Flexbox layout
+                  flexDirection: 'row',         // Row direction to keep items on the same line
+                  alignItems: 'left',         // Vertically center items
+                  marginTop: '1rem',
+                  position: 'relative',
+                  gap: '1rem',
+              });
 
-        content.appendChild(list);
-    } catch (error) {
-        const errorElem = createElement(
-            "p",
-            {},
-            `An error occurred: ${error.message}`
-        );
-        applyStyles(errorElem, { color: "#f87171" });
-        content.appendChild(errorElem);
-    }
+              // Create aspect tags (allow multiple)
+              const aspectsContainer = createElement('div', {});
+              applyStyles(aspectsContainer, {
+                  display: 'flex',               // Flex layout for wrapping aspect tags
+                  flexWrap: 'wrap',              // Allow wrapping of tags if there are many
+                  gap: '5px',                    // Spacing between tags
+              });
+
+              Object.keys(item.aspects).forEach(aspect => {
+                  const aspectTag = createElement('span', {}, aspect);
+                  applyStyles(aspectTag, {
+                      backgroundColor: ASPECT_COLORS[aspect] || '#ccc',
+                      color: '#fff',
+                      padding: '8px 10px 5px 10px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      lineHeight: '12px', // Set line height equal to the font size to eliminate extra space
+                  });
+                  aspectsContainer.appendChild(aspectTag);
+              });
+
+              // Mini donut chart for bias score
+              const miniDonutCanvas = createElement('canvas', { id: `mini-donut-${index}` });
+              applyStyles(miniDonutCanvas, {
+                  width: '30px',  // Set size to 30x30 for mini chart
+                  height: '30px',
+              });
+
+              // Append the tags and mini chart properly
+              tagsAndMiniChartContainer.appendChild(miniDonutCanvas);   // Mini donut second
+              tagsAndMiniChartContainer.appendChild(aspectsContainer);  // Tags first
+              listItem.appendChild(tagsAndMiniChartContainer);          // Add container to list item
+
+              list.appendChild(listItem);
+
+              // Create the mini donut chart AFTER ensuring the canvas is appended to the DOM
+              setTimeout(() => {
+                  const donutElement = document.getElementById(`mini-donut-${index}`);
+                  if (donutElement) {
+                      createMiniDonutChart(`mini-donut-${index}`,item.biasScore);
+                  }
+              }, 0); // Small timeout to ensure DOM is ready
+          } else {
+              const errorElem = createElement("p", {}, "Error: Missing sentence");
+              applyStyles(errorElem, {
+                  marginBottom: "0.5rem",
+                  color: "#f87171",
+              });
+              listItem.appendChild(errorElem);
+          }
+      });
+
+      content.appendChild(list);
+  } catch (error) {
+      const errorElem = createElement(
+          "p",
+          {},
+          `An error occurred: ${error.message}`
+      );
+      applyStyles(errorElem, { color: "#f87171" });
+      content.appendChild(errorElem);
+  }
 }
+
+
+
+
+
+
+
+
 
 async function runAnalysis() {
   isAnalyzing = true;

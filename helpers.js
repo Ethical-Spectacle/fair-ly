@@ -1,8 +1,8 @@
 // Define ENTITY_COLORS
 export const ENTITY_COLORS = {
-    GEN: '#FFB3BA',   // pink
-    UNFAIR: '#BAFFC9', // green
-    STEREO: '#BAE1FF'  // blue
+    GEN: '#BAE1FF',   // blue
+    UNFAIR: '#FFB3BA', // red
+    STEREO: '#D3B3FF'  // purple
 };
 
 // Create and append elements
