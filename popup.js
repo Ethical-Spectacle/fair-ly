@@ -28,6 +28,11 @@ const ASPECT_COLORS = {
     "physical": "#90ee90"      // Light Green
 };
 
+// Utility function to apply styles to an element
+function applyStyles(element, styles) {
+    Object.assign(element.style, styles);
+}
+
 // Switch tabs
 function setActiveTab(tab) {
     activeTab = tab;
@@ -39,17 +44,41 @@ function setActiveTab(tab) {
     }
 }
 
-// Tab buttons
+
 function renderTabs() {
     const tabButtons = document.getElementById('tab-buttons');
     tabButtons.innerHTML = '';
-    tabButtons.classList.add('tab-buttons-container');
+    applyStyles(tabButtons, {
+        display: 'flex',
+        justifyContent: 'center',
+        marginBottom: '1.5rem',
+        width: '100%',
+    });
 
     ['analyze', 'explore'].forEach(tab => {
         const button = createElement('button', {
-            class: `tab-button ${activeTab === tab ? 'tab-button-active' : 'tab-button-inactive'}`,
             onclick: () => setActiveTab(tab)
         }, tab.charAt(0).toUpperCase() + tab.slice(1));
+
+        applyStyles(button, {
+            margin: '0 0.5rem',
+            padding: '0.5rem 1rem',
+            border: 'none',
+            borderRadius: '0.375rem',
+            backgroundColor: activeTab === tab ? '#2563eb' : '#e5e7eb',
+            color: activeTab === tab ? '#ffffff' : '#1f2937',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease',
+            width: '45%'  // Ensure buttons take consistent width
+        });
+
+        button.onmouseover = () => {
+            button.style.backgroundColor = activeTab === tab ? '#2563eb' : '#3b82f6';
+        };
+        button.onmouseout = () => {
+            button.style.backgroundColor = activeTab === tab ? '#2563eb' : '#e5e7eb';
+        };
+
         tabButtons.appendChild(button);
     });
 }
@@ -57,69 +86,157 @@ function renderTabs() {
 function renderAnalyzeTab() {
     const content = document.getElementById('content');
     content.innerHTML = '';
-    content.classList.add('popup-content');
+    applyStyles(content, {
+        width: '100%',
+        textAlign: 'center',
+        padding: '1rem',
+        boxSizing: 'border-box',
+        maxWidth: '600px', // Increase max width for a wider layout
+        margin: '0 auto'
+    });
 
     if (!analysisData && !isAnalyzing) {
         const button = createElement('button', {
-            class: "analysis-button",
             onclick: runAnalysis
         }, `Run Analysis on "${pageTitle || 'current page'}"`);
+
+        applyStyles(button, {
+            padding: '0.75rem 1.5rem',
+            backgroundColor: '#2563eb',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '0.375rem',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease',
+            margin: '1rem 0',
+        });
+
+        button.onmouseover = () => {
+            button.style.backgroundColor = '#3b82f6';
+        };
+        button.onmouseout = () => {
+            button.style.backgroundColor = '#2563eb';
+        };
+
         content.appendChild(button);
     } else if (isAnalyzing) {
-        content.appendChild(createElement('p', { class: 'text-center' }, 'Analysis in progress...'));
-        const progressBar = createElement('div', { class: 'progress-bar' });
-        const progressFill = createElement('div', {
-            class: 'progress-bar-fill',
-            style: `width: ${progress}%`
+        const paragraph = createElement('p', {}, 'Analysis in progress...');
+        applyStyles(paragraph, { textAlign: 'center', marginBottom: '1rem' });
+        content.appendChild(paragraph);
+
+        const progressBar = createElement('div', {});
+        applyStyles(progressBar, {
+            width: '100%',
+            backgroundColor: '#e5e7eb',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            height: '1rem',
+            marginBottom: '1.5rem'
+        });
+
+        const progressFill = createElement('div', {});
+        applyStyles(progressFill, {
+            height: '100%',
+            backgroundColor: '#2563eb',
+            width: `${progress}%`,
+            transition: 'width 0.3s ease'
         });
         progressBar.appendChild(progressFill);
+
         content.appendChild(progressBar);
     } else if (analysisData && analysisData.length > 0) {
-        content.appendChild(createElement('h2', { class: "analysis-title" }, "Analysis Results"));
+        const analysisContainer = createElement('div', {});
+        applyStyles(analysisContainer, {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '2rem',
+            flexWrap: 'wrap',
+        });
 
-        // Bias score canvas
+        // Bias score canvas (Full Donut Chart)
         const biasScoreCanvas = document.createElement('canvas');
         biasScoreCanvas.id = 'biasScoreChart';
-        biasScoreCanvas.classList.add('chart-center');
         biasScoreCanvas.width = 200;
         biasScoreCanvas.height = 200;
-        content.appendChild(biasScoreCanvas);
+        applyStyles(biasScoreCanvas, {
+            display: 'block',
+            margin: '0 auto',
+            maxWidth: '100%'
+        });
+        analysisContainer.appendChild(biasScoreCanvas);
 
-        // Entity charts container
-        const entityChartsContainer = createElement('div', { class: 'entity-charts-container' });
+        // Summary stats
+        const summaryStats = createElement('div', {});
+        const numBiasedSentences = analysisData.filter(item => item.biasScore > 0).length;
+        applyStyles(summaryStats, {
+            textAlign: 'left',
+            fontSize: '1rem',
+            marginLeft: '2rem',
+            flex: '1',
+            lineHeight: '1.5rem',
+            maxWidth: '250px',
+        });
+
+        const statsText = `
+            <p><strong>Number of Sentences:</strong> ${analysisData.length}</p>
+            <p><strong>Biased Sentences:</strong> ${numBiasedSentences}</p>
+            <p><strong>Percentage Biased:</strong> ${(numBiasedSentences / analysisData.length * 100).toFixed(2)}%</p>
+        `;
+        summaryStats.innerHTML = statsText;
+        analysisContainer.appendChild(summaryStats);
+
+        content.appendChild(analysisContainer);
+
+        // Entity charts container (Three Half-Donut Charts Side by Side)
+        const entityChartsContainer = createElement('div', {});
+        applyStyles(entityChartsContainer, {
+            display: 'flex',
+            justifyContent: 'space-around',
+            gap: '1rem',
+            margin: '2rem 0',
+            flexWrap: 'wrap'
+        });
         content.appendChild(entityChartsContainer);
 
-        ['genChart', 'unfairChart', 'stereoChart'].forEach(chartId => {
+        ['genChart', 'unfairChart', 'stereoChart'].forEach((chartId) => {
             const canvas = document.createElement('canvas');
             canvas.id = chartId;
-            canvas.classList.add('entity-chart');
-            canvas.width = 120;
-            canvas.height = 120;
+            canvas.width = 150;
+            canvas.height = 150;
+            applyStyles(canvas, {
+                maxWidth: '100%',
+                flex: '1 1 30%',
+                boxSizing: 'border-box',
+            });
             entityChartsContainer.appendChild(canvas);
         });
 
         // Aspects bubble chart
         const aspectsCanvas = document.createElement('canvas');
         aspectsCanvas.id = 'aspectsChart';
-        aspectsCanvas.classList.add('chart-center');
         aspectsCanvas.width = 250;
         aspectsCanvas.height = 250;
+        applyStyles(aspectsCanvas, {
+            display: 'block',
+            margin: '2rem auto',
+            maxWidth: '100%'
+        });
         content.appendChild(aspectsCanvas);
 
-        // Render charts
+        // Render charts after canvases are added to the DOM
         const averageBiasScore = analysisData.reduce((sum, item) => sum + item.biasScore, 0) / analysisData.length;
         const normalizedBiasScore = averageBiasScore * 100;
 
         createDonutChart('biasScoreChart', [normalizedBiasScore, 100 - normalizedBiasScore], ['Biased', 'Fair'], ['#FF6384', '#36A2EB']);
 
-        // Render entity half-donut charts
+        // Render entity half-donut charts with proper data
         createCircularFillChart('genChart', normalizedEntityCounts['GEN'], 1, 'Generalizations', ENTITY_COLORS['GEN']);
         createCircularFillChart('unfairChart', normalizedEntityCounts['UNFAIR'], 1, 'Unfairness', ENTITY_COLORS['UNFAIR']);
         createCircularFillChart('stereoChart', normalizedEntityCounts['STEREO'], 1, 'Stereotypes', ENTITY_COLORS['STEREO']);
 
         // Prepare data for aspects bubble chart
         const aspectCounts = {};
-
         analysisData.forEach(sentence => {
             for (const [aspect, score] of Object.entries(sentence.aspects)) {
                 if (aspectCounts[aspect]) {
@@ -139,78 +256,92 @@ function renderAnalyzeTab() {
         // Render the bubble chart
         createBubbleChart('aspectsChart', aspectsData);
     } else {
-        content.appendChild(createElement('p', { class: 'text-center' }, "No analysis data available or an error occurred."));
+        const paragraph = createElement('p', {}, "No analysis data available or an error occurred.");
+        applyStyles(paragraph, { textAlign: 'center', marginBottom: '1rem' });
+        content.appendChild(paragraph);
     }
 }
 
 
 
 
-// Render the Explore tab
 function renderExploreTab() {
     const content = document.getElementById('content');
     content.innerHTML = '';
 
     if (!analysisData || analysisData.length === 0) {
-        content.appendChild(createElement('p', {}, "No analysis data available. Please run an analysis first."));
+        const paragraph = createElement('p', {}, "No analysis data available. Please run an analysis first.");
+        applyStyles(paragraph, { textAlign: 'center' });
+        content.appendChild(paragraph);
         return;
     }
 
     try {
         const sortedData = [...analysisData].sort((a, b) => b.biasScore - a.biasScore);
 
-        const list = createElement('ul', { class: "space-y-4" });
+        const list = createElement('ul', {});
+        applyStyles(list, {
+            listStyleType: 'none',
+            padding: '0',
+            margin: '0'
+        });
 
         sortedData.forEach((item) => {
-            const listItem = createElement('li', { class: "p-4 border rounded shadow-sm hover:shadow-md transition-shadow duration-200" });
+            const listItem = createElement('li', {});
+            applyStyles(listItem, {
+                padding: '1rem',
+                border: '1px solid #e5e7eb',
+                borderRadius: '0.375rem',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                transition: 'box-shadow 0.3s ease',
+                marginBottom: '1rem'
+            });
+            listItem.onmouseover = () => {
+                listItem.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
+            };
+            listItem.onmouseout = () => {
+                listItem.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+            };
 
             if (item.sentence) {
                 const highlightedSentence = highlightEntities(item.sentence, item.entities);
-                const sentenceElem = createElement('p', { class: "mb-2 text-lg leading-relaxed" });
+                const sentenceElem = createElement('p', {});
+                applyStyles(sentenceElem, {
+                    marginBottom: '0.5rem',
+                    fontSize: '1.125rem',
+                    lineHeight: '1.75rem'
+                });
                 sentenceElem.innerHTML = highlightedSentence;
                 listItem.appendChild(sentenceElem);
             } else {
-                listItem.appendChild(createElement('p', { class: "mb-2 text-red-500" }, "Error: Missing sentence"));
+                const errorElem = createElement('p', {}, "Error: Missing sentence");
+                applyStyles(errorElem, {
+                    marginBottom: '0.5rem',
+                    color: '#f87171'
+                });
+                listItem.appendChild(errorElem);
             }
 
-            listItem.appendChild(createElement('p', { class: "text-sm text-gray-600 mb-2" }, `Bias score: ${item.biasScore.toFixed(2)}`));
+            const biasScoreElem = createElement('p', {}, `Bias score: ${item.biasScore.toFixed(2)}`);
+            applyStyles(biasScoreElem, {
+                fontSize: '0.875rem',
+                color: '#6b7280',
+                marginBottom: '0.5rem'
+            });
+            listItem.appendChild(biasScoreElem);
 
             list.appendChild(listItem);
         });
 
         content.appendChild(list);
-
-        // Add CSS for hover effect and tooltip
-        const style = document.createElement('style');
-        style.textContent = `
-            .highlighted-entity {
-                padding: 2px 4px;
-                border-radius: 2px;
-                transition: all 0.2s;
-                position: relative;
-            }
-            .highlighted-entity:hover {
-                filter: brightness(90%);
-            }
-            .highlighted-entity:hover::after {
-                content: attr(data-entity-type);
-                position: absolute;
-                bottom: 100%;
-                left: 50%;
-                transform: translateX(-50%);
-                background-color: #333;
-                color: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 12px;
-                white-space: nowrap;
-            }
-        `;
-        document.head.appendChild(style);
     } catch (error) {
-        content.appendChild(createElement('p', { class: "text-red-500" }, `An error occurred: ${error.message}`));
+        const errorElem = createElement('p', {}, `An error occurred: ${error.message}`);
+        applyStyles(errorElem, { color: '#f87171' });
+        content.appendChild(errorElem);
     }
 }
+
 
 // Run analysis
 function runAnalysis() {

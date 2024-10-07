@@ -49,7 +49,6 @@ export function createDonutChart(canvasId, data, labels, colors) {
     });
 }
 
-// Circular Fill Chart (Using Chart.js)
 export function createCircularFillChart(canvasId, value, maxValue, label, color) {
     const ctx = document.getElementById(canvasId).getContext('2d');
 
@@ -71,7 +70,7 @@ export function createCircularFillChart(canvasId, value, maxValue, label, color)
             responsive: true,
             cutout: '75%',  // Create a sleek and thin filled circular chart
             rotation: -90,  // Start from the top
-            circumference: 180,  // Only draw a half-circle
+            circumference: 360,  // Draw a complete circle
             plugins: {
                 legend: {
                     display: false  // No legend for a simpler look
@@ -87,6 +86,7 @@ export function createCircularFillChart(canvasId, value, maxValue, label, color)
         }
     });
 }
+
 
 export function createBubbleChart(canvasId, data) {
     const ctx = document.getElementById(canvasId).getContext('2d');
