@@ -149,30 +149,34 @@ function normalizeEntityCounts(entityCounts, totalSentences) {
 
 async function analyzeText(text) {
     console.log("Analyzing text:", text);
-    if (!text) return { results: [], entityCounts: { GEN: 0, UNFAIR: 0, STEREO: 0 }, normalizedEntityCounts: { GEN: 0, UNFAIR: 0, STEREO: 0 } };
+    if (!text) return { results: [], entityCounts: { GEN: 0, UNFAIR: 0, STEREO: 0 }, normalizedEntityCounts: { GEN: 0, UNFAIR: 0, STEREO: 0 }, totalSentences: 0 };
     const sentences = text.match(/[^\.!\?]+[\.!\?]+/g) || [];
+    const totalSentences = sentences.length;
     const results = [];
     const totalEntityCounts = {
-    GEN: 0,
-    UNFAIR: 0,
-    STEREO: 0
+        GEN: 0,
+        UNFAIR: 0,
+        STEREO: 0
     };
 
     for (let sentence of sentences) {
-    const result = await processSentence(sentence.trim());
-    if (result) {
-        results.push(result);
-        Object.keys(result.entityCounts).forEach(key => {
-        totalEntityCounts[key] += result.entityCounts[key];
-        });
-    }
+        const result = await processSentence(sentence.trim());
+        if (result) {
+            results.push(result);
+            Object.keys(result.entityCounts).forEach(key => {
+                totalEntityCounts[key] += result.entityCounts[key];
+            });
+        }
     }
 
-    const normalizedEntityCounts = normalizeEntityCounts(totalEntityCounts, sentences.length);
+    console.log(totalSentences)
 
-    console.log("Analysis results:", { results, totalEntityCounts, normalizedEntityCounts });
-    return { results, entityCounts: totalEntityCounts, normalizedEntityCounts };
+    const normalizedEntityCounts = normalizeEntityCounts(totalEntityCounts, totalSentences);
+
+    console.log("Analysis results:", { results, totalEntityCounts, normalizedEntityCounts, totalSentences });
+    return { results, entityCounts: totalEntityCounts, normalizedEntityCounts, totalSentences };
 }
+
 
 async function getPageText(tab) {
     if (chrome.scripting) {
@@ -203,36 +207,39 @@ async function getPageText(tab) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "runAnalysis") {
-    console.log("Received runAnalysis request");
-    chrome.tabs.query({active: true, currentWindow: true}, async (tabs) => {
-        const tab = tabs[0];
-        try {
-        const text = await getPageText(tab);
-        const { results, entityCounts, normalizedEntityCounts } = await analyzeText(text);
-        
-        chrome.storage.local.set({
-            analysisData: results,
-            entityCounts: entityCounts,
-            normalizedEntityCounts: normalizedEntityCounts,
-            analysisTimestamp: Date.now(),
-            pageTitle: tab.title,
-            pageUrl: tab.url
+        console.log("Received runAnalysis request");
+        chrome.tabs.query({active: true, currentWindow: true}, async (tabs) => {
+            const tab = tabs[0];
+            try {
+                const text = await getPageText(tab);
+                const { results, entityCounts, normalizedEntityCounts, totalSentences } = await analyzeText(text);
+                
+                // Set the analysis data including total sentences
+                chrome.storage.local.set({
+                    analysisData: results,
+                    entityCounts: entityCounts,
+                    normalizedEntityCounts: normalizedEntityCounts,
+                    totalSentences: totalSentences,  // Store total sentences here
+                    analysisTimestamp: Date.now(),
+                    pageTitle: tab.title,
+                    pageUrl: tab.url,
+                });
+                
+                console.log("Sending response:", { results, entityCounts, normalizedEntityCounts, pageTitle: tab.title, pageUrl: tab.url, totalSentences });
+                sendResponse({
+                    data: results,
+                    entityCounts: entityCounts,
+                    normalizedEntityCounts: normalizedEntityCounts,
+                    pageTitle: tab.title,
+                    pageUrl: tab.url,
+                    totalSentences: totalSentences
+                });
+            } catch (error) {
+                console.error("Error during analysis:", error);
+                sendResponse({error: "An error occurred during analysis. Make sure you're on a web page."});
+            }
         });
-        
-        console.log("Sending response:", { results, entityCounts, normalizedEntityCounts, pageTitle: tab.title, pageUrl: tab.url });
-        sendResponse({
-            data: results,
-            entityCounts: entityCounts,
-            normalizedEntityCounts: normalizedEntityCounts,
-            pageTitle: tab.title,
-            pageUrl: tab.url
-        });
-        } catch (error) {
-        console.error("Error during analysis:", error);
-        sendResponse({error: "An error occurred during analysis. Make sure you're on a web page."});
-        }
-    });
-    return true; //async
+        return true; // Indicate async response
     }
 });
 

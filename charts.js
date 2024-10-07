@@ -1,15 +1,19 @@
 // charts.js
 
 // Donut Chart (Using Chart.js)
-export function createDonutChart(canvasId, data, labels, colors) {
+export function createDonutChart(canvasId, biasedCount, totalSentences, colors) {
     const ctx = document.getElementById(canvasId).getContext('2d');
-    
+
+    // Calculate percentages
+    const biasedPercentage = (biasedCount / totalSentences) * 100;
+    const fairPercentage = 100 - biasedPercentage;
+
     new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: labels,
+            labels: ['Biased', 'Fair'],
             datasets: [{
-                data: data,
+                data: [biasedPercentage, fairPercentage],
                 backgroundColor: colors,
                 borderColor: '#ffffff',
                 borderWidth: 2,
@@ -49,13 +53,14 @@ export function createDonutChart(canvasId, data, labels, colors) {
     });
 }
 
+
 export function createCircularFillChart(canvasId, value, maxValue, label, color) {
     const ctx = document.getElementById(canvasId).getContext('2d');
 
     new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: [label, 'Remaining'],
+            labels: [label, ''],
             datasets: [{
                 data: [value * 100, (maxValue - value) * 100],
                 backgroundColor: [
@@ -70,20 +75,53 @@ export function createCircularFillChart(canvasId, value, maxValue, label, color)
             responsive: true,
             cutout: '75%',  // Create a sleek and thin filled circular chart
             rotation: -90,  // Start from the top
-            circumference: 360,  // Draw a complete circle
+            circumference: 180,  // Only draw a half-circle
             plugins: {
                 legend: {
                     display: false  // No legend for a simpler look
                 },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
+                        label: function (context) {
                             return `${context.label}: ${(context.raw).toFixed(2)}%`;
                         }
                     }
+                },
+                doughnutLabel: {
+                    labels: [
+                        {
+                            text: `${value * 100}%`,
+                            font: {
+                                size: 18,
+                                weight: 'bold'
+                            },
+                            color: '#4a4a4a'
+                        }
+                    ]
+                }
+            },
+            animation: {
+                animateRotate: true,
+                animateScale: true
+            }
+        },
+        plugins: [
+            {
+                id: 'entityTypeLabel',
+                afterDraw: function (chart) {
+                    const ctx = chart.ctx;
+                    const canvas = chart.canvas;
+                    const { width, height } = canvas;
+
+                    // Draw the label below the chart
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillStyle = '#4a4a4a';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(label, width / 2, height - 10);
                 }
             }
-        }
+        ]
     });
 }
 

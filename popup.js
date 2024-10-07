@@ -10,8 +10,6 @@ import {
   createCircularFillChart,
   createBubbleChart,
 } from "./charts.js";
-
-// Global variables
 let activeTab = "analyze";
 let analysisData = null;
 let entityCounts = null;
@@ -20,28 +18,26 @@ let isAnalyzing = false;
 let pageTitle = "";
 let pageUrl = "";
 let progress = 0;
+let totalSentences = 0;
 
-// ASPECT_COLORS
 const ASPECT_COLORS = {
-  racial: "#ff0000", // Red
-  religious: "#8b4513", // Brown
-  gender: "#800080", // Purple
-  age: "#ffa500", // Orange
-  nationality: "#0000ff", // Blue
-  sexuality: "#ff69b4", // Pink
-  socioeconomic: "#006400", // Dark Green
-  educational: "#ffff00", // Yellow
-  disability: "#87cefa", // Light Blue
-  political: "#ff6347", // Light Red
-  physical: "#90ee90", // Light Green
+    "racial": "#ff0000",
+    "religious": "#8b4513",
+    "gender": "#800080",
+    "age": "#ffa500",
+    "nationality": "#0000ff",
+    "sexuality": "#ff69b4",
+    "socioeconomic": "#006400",
+    "educational": "#ffff00",
+    "disability": "#87cefa",
+    "political": "#ff6347",
+    "physical": "#90ee90"
 };
 
-// Utility function to apply styles to an element
 function applyStyles(element, styles) {
   Object.assign(element.style, styles);
 }
 
-// Switch tabs
 function setActiveTab(tab) {
   activeTab = tab;
   renderTabs();
@@ -71,17 +67,17 @@ function renderTabs() {
       tab.charAt(0).toUpperCase() + tab.slice(1)
     );
 
-    applyStyles(button, {
-      margin: "0 0.5rem",
-      padding: "0.5rem 1rem",
-      border: "none",
-      borderRadius: "0.375rem",
-      backgroundColor: activeTab === tab ? "#2563eb" : "#e5e7eb",
-      color: activeTab === tab ? "#ffffff" : "#1f2937",
-      cursor: "pointer",
-      transition: "background-color 0.3s ease",
-      width: "45%", // Ensure buttons take consistent width
-    });
+        applyStyles(button, {
+            margin: '0 0.5rem',
+            padding: '0.5rem 1rem',
+            border: 'none',
+            borderRadius: '0.375rem',
+            backgroundColor: activeTab === tab ? '#2563eb' : '#e5e7eb',
+            color: activeTab === tab ? '#ffffff' : '#1f2937',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease',
+            width: '45%'
+        });
 
     button.onmouseover = () => {
       button.style.backgroundColor = activeTab === tab ? "#2563eb" : "#3b82f6";
@@ -95,16 +91,15 @@ function renderTabs() {
 }
 
 function renderAnalyzeTab() {
-  const content = document.getElementById("content");
-  content.innerHTML = "";
-  applyStyles(content, {
-    width: "100%",
-    textAlign: "center",
-    padding: "1rem",
-    boxSizing: "border-box",
-    maxWidth: "600px", // Increase max width for a wider layout
-    margin: "0 auto",
-  });
+    const content = document.getElementById('content');
+    content.innerHTML = '';
+    applyStyles(content, {
+        width: '500px',
+        textAlign: 'center',
+        padding: '1rem',
+        boxSizing: 'border-box',
+        margin: '0 auto'
+    });
 
   if (!analysisData && !isAnalyzing) {
     const button = createElement(
@@ -169,146 +164,101 @@ function renderAnalyzeTab() {
       flexWrap: "wrap",
     });
 
-    // Bias score canvas (Full Donut Chart)
-    const biasScoreCanvas = document.createElement("canvas");
-    biasScoreCanvas.id = "biasScoreChart";
-    biasScoreCanvas.width = 200;
-    biasScoreCanvas.height = 200;
-    applyStyles(biasScoreCanvas, {
-      display: "block",
-      margin: "0 auto",
-      maxWidth: "100%",
-    });
-    analysisContainer.appendChild(biasScoreCanvas);
+        const biasScoreCanvas = document.createElement('canvas');
+        biasScoreCanvas.id = 'biasScoreChart';
+        biasScoreCanvas.width = 200;
+        biasScoreCanvas.height = 200;
+        applyStyles(biasScoreCanvas, {
+            display: 'block',
+            margin: '0 auto',
+            maxWidth: '30%'
+        });
+        analysisContainer.appendChild(biasScoreCanvas);
 
-    // Summary stats
-    const summaryStats = createElement("div", {});
-    const numBiasedSentences = analysisData.filter(
-      (item) => item.biasScore > 0
-    ).length;
-    applyStyles(summaryStats, {
-      textAlign: "left",
-      fontSize: "1rem",
-      marginLeft: "2rem",
-      flex: "1",
-      lineHeight: "1.5rem",
-      maxWidth: "250px",
-    });
+        const summaryStats = createElement('div', {});
+        const numBiasedSentences = analysisData.length;
+        applyStyles(summaryStats, {
+            textAlign: 'left',
+            fontSize: '1rem',
+            marginLeft: '2rem',
+            flex: '1',
+            lineHeight: '1.5rem',
+            maxWidth: '250px',
+        });
 
-    const statsText = `
-            <p><strong>Number of Sentences:</strong> ${analysisData.length}</p>
-            <p><strong>Biased Sentences:</strong> ${numBiasedSentences}</p>
-            <p><strong>Percentage Biased:</strong> ${(
-              (numBiasedSentences / analysisData.length) *
-              100
-            ).toFixed(2)}%</p>
+        const statsText = `
+            <p><strong>Total Sentences:</strong> ${totalSentences}</p>
+            <p><strong>Number of Biased Sentences:</strong> ${numBiasedSentences}</p>
+            <p><strong>Percentage Biased:</strong> ${(numBiasedSentences / totalSentences * 100).toFixed(2)}%</p>
         `;
     summaryStats.innerHTML = statsText;
     analysisContainer.appendChild(summaryStats);
 
     content.appendChild(analysisContainer);
 
-    // Entity charts container (Three Half-Donut Charts Side by Side)
-    const entityChartsContainer = createElement("div", {});
-    applyStyles(entityChartsContainer, {
-      display: "flex",
-      justifyContent: "space-around",
-      gap: "1rem",
-      margin: "2rem 0",
-      flexWrap: "wrap",
-    });
-    content.appendChild(entityChartsContainer);
+        const entityChartsContainer = createElement('div', {});
+        applyStyles(entityChartsContainer, {
+            display: 'flex',
+            justifyContent: 'space-around',
+            gap: '1rem',
+            margin: '2rem 0',
+            flexWrap: 'wrap'
+        });
+        content.appendChild(entityChartsContainer);
 
-    ["genChart", "unfairChart", "stereoChart"].forEach((chartId) => {
-      const canvas = document.createElement("canvas");
-      canvas.id = chartId;
-      canvas.width = 150;
-      canvas.height = 150;
-      applyStyles(canvas, {
-        maxWidth: "100%",
-        flex: "1 1 30%",
-        boxSizing: "border-box",
-      });
-      entityChartsContainer.appendChild(canvas);
-    });
+        ['genChart', 'unfairChart', 'stereoChart'].forEach((chartId) => {
+            const canvas = document.createElement('canvas');
+            canvas.id = chartId;
+            applyStyles(canvas, {
+                maxWidth: '30%',
+                flex: '1 1 30%',
+                boxSizing: 'border-box',
+            });
+            entityChartsContainer.appendChild(canvas);
+        });
 
-    // Aspects bubble chart
-    const aspectsCanvas = document.createElement("canvas");
-    aspectsCanvas.id = "aspectsChart";
-    aspectsCanvas.width = 250;
-    aspectsCanvas.height = 250;
-    applyStyles(aspectsCanvas, {
-      display: "block",
-      margin: "2rem auto",
-      maxWidth: "100%",
-    });
-    content.appendChild(aspectsCanvas);
+        const aspectsCanvas = document.createElement('canvas');
+        aspectsCanvas.id = 'aspectsChart';
+        aspectsCanvas.width = 250;
+        aspectsCanvas.height = 250;
+        applyStyles(aspectsCanvas, {
+            display: 'block',
+            margin: '2rem auto',
+            maxWidth: '100%'
+        });
+        content.appendChild(aspectsCanvas);
 
-    // Render charts after canvases are added to the DOM
-    const averageBiasScore =
-      analysisData.reduce((sum, item) => sum + item.biasScore, 0) /
-      analysisData.length;
-    const normalizedBiasScore = averageBiasScore * 100;
+        const averageBiasScore = analysisData.reduce((sum, item) => sum + item.biasScore, 0) / analysisData.length;
+        const normalizedBiasScore = averageBiasScore * 100;
 
-    createDonutChart(
-      "biasScoreChart",
-      [normalizedBiasScore, 100 - normalizedBiasScore],
-      ["Biased", "Fair"],
-      ["#FF6384", "#36A2EB"]
-    );
+        createDonutChart('biasScoreChart', [normalizedBiasScore, 100 - normalizedBiasScore], ['Biased', 'Fair'], ['#FF6384', '#36A2EB']);
+        createCircularFillChart('genChart', normalizedEntityCounts['GEN'], 1, 'Generalizations', ENTITY_COLORS['GEN']);
+        createCircularFillChart('unfairChart', normalizedEntityCounts['UNFAIR'], 1, 'Unfairness', ENTITY_COLORS['UNFAIR']);
+        createCircularFillChart('stereoChart', normalizedEntityCounts['STEREO'], 1, 'Stereotypes', ENTITY_COLORS['STEREO']);
 
-    // Render entity half-donut charts with proper data
-    createCircularFillChart(
-      "genChart",
-      normalizedEntityCounts["GEN"],
-      1,
-      "Generalizations",
-      ENTITY_COLORS["GEN"]
-    );
-    createCircularFillChart(
-      "unfairChart",
-      normalizedEntityCounts["UNFAIR"],
-      1,
-      "Unfairness",
-      ENTITY_COLORS["UNFAIR"]
-    );
-    createCircularFillChart(
-      "stereoChart",
-      normalizedEntityCounts["STEREO"],
-      1,
-      "Stereotypes",
-      ENTITY_COLORS["STEREO"]
-    );
+        const aspectCounts = {};
+        analysisData.forEach(sentence => {
+            for (const [aspect, score] of Object.entries(sentence.aspects)) {
+                if (aspectCounts[aspect]) {
+                    aspectCounts[aspect] += 1;
+                } else {
+                    aspectCounts[aspect] = 1;
+                }
+            }
+        });
 
-    // Prepare data for aspects bubble chart
-    const aspectCounts = {};
-    analysisData.forEach((sentence) => {
-      for (const [aspect, score] of Object.entries(sentence.aspects)) {
-        if (aspectCounts[aspect]) {
-          aspectCounts[aspect] += 1; // Increment count for each occurrence
-        } else {
-          aspectCounts[aspect] = 1;
-        }
-      }
-    });
+        const aspectsData = Object.entries(aspectCounts).map(([aspect, count]) => ({
+            aspect: aspect,
+            value: count,
+            color: ASPECT_COLORS[aspect] || '#000000'
+        }));
 
-    const aspectsData = Object.entries(aspectCounts).map(([aspect, count]) => ({
-      aspect: aspect,
-      value: count,
-      color: ASPECT_COLORS[aspect] || "#000000", // Default color if not specified
-    }));
-
-    // Render the bubble chart
-    createBubbleChart("aspectsChart", aspectsData);
-  } else {
-    const paragraph = createElement(
-      "p",
-      {},
-      "No analysis data available or an error occurred."
-    );
-    applyStyles(paragraph, { textAlign: "center", marginBottom: "1rem" });
-    content.appendChild(paragraph);
-  }
+        createBubbleChart('aspectsChart', aspectsData);
+    } else {
+        const paragraph = createElement('p', {}, "No analysis data available or an error occurred.");
+        applyStyles(paragraph, { textAlign: 'center', marginBottom: '1rem' });
+        content.appendChild(paragraph);
+    }
 }
 
 function renderExploreTab() {
@@ -338,6 +288,7 @@ function renderExploreTab() {
       margin: "0",
     });
 
+        // cards for each sentence
     sortedData.forEach((item) => {
       const listItem = createElement("li", {});
       applyStyles(listItem, {
@@ -406,7 +357,6 @@ function renderExploreTab() {
   }
 }
 
-// Run analysis
 function runAnalysis() {
   isAnalyzing = true;
   progress = 0;
@@ -420,58 +370,47 @@ function runAnalysis() {
     renderAnalyzeTab();
   }, 500);
 
-  chrome.runtime.sendMessage({ action: "runAnalysis" }, (response) => {
-    clearInterval(progressInterval);
-    if (response.error) {
-      isAnalyzing = false;
-      progress = 0;
-      const content = document.getElementById("content");
-      content.innerHTML = `<p class="text-red-500">${response.error}</p>`;
-    } else {
-      analysisData = response.data;
-      entityCounts = response.entityCounts;
-      normalizedEntityCounts = response.normalizedEntityCounts;
-      pageTitle = response.pageTitle;
-      pageUrl = response.pageUrl;
-      isAnalyzing = false;
-      progress = 100;
-    }
-    renderAnalyzeTab();
-  });
+    chrome.runtime.sendMessage({ action: 'runAnalysis' }, (response) => {
+        clearInterval(progressInterval);
+        if (response.error) {
+            isAnalyzing = false;
+            progress = 0;
+            const content = document.getElementById('content');
+            content.innerHTML = `<p class="text-red-500">${response.error}</p>`;
+        } else {
+            analysisData = response.data;
+            entityCounts = response.entityCounts;
+            normalizedEntityCounts = response.normalizedEntityCounts;
+            pageTitle = response.pageTitle;
+            pageUrl = response.pageUrl;
+            totalSentences = response.totalSentences;
+            isAnalyzing = false;
+            progress = 100;
+        }
+        renderAnalyzeTab();
+    });
 }
 
-// Initialize the popup
-document.addEventListener("DOMContentLoaded", () => {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const currentTab = tabs[0];
-    pageTitle = currentTab.title;
-    pageUrl = currentTab.url;
-    renderTabs();
-    renderAnalyzeTab();
+document.addEventListener('DOMContentLoaded', () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const currentTab = tabs[0];
+        pageTitle = currentTab.title;
+        pageUrl = currentTab.url;
+        renderTabs();
+        renderAnalyzeTab();
 
-    // Load data from storage
-    chrome.storage.local.get(
-      [
-        "analysisData",
-        "entityCounts",
-        "normalizedEntityCounts",
-        "analysisTimestamp",
-        "pageTitle",
-        "pageUrl",
-      ],
-      (result) => {
-        if (
-          result.analysisData &&
-          result.pageUrl === pageUrl &&
-          Date.now() - result.analysisTimestamp < 30 * 60 * 1000
-        ) {
-          analysisData = result.analysisData;
-          entityCounts = result.entityCounts;
-          normalizedEntityCounts = result.normalizedEntityCounts;
-          pageTitle = result.pageTitle;
-          renderAnalyzeTab();
-        }
-      }
-    );
-  });
+        chrome.storage.local.get(['analysisData', 'entityCounts', 'normalizedEntityCounts', 'totalSentences', 'analysisTimestamp', 'pageTitle', 'pageUrl'], (result) => {
+            // console.log(totalSentences);
+            if (result.analysisData &&
+                result.pageUrl === pageUrl &&
+                Date.now() - result.analysisTimestamp < 30 * 60 * 1000) {
+                analysisData = result.analysisData;
+                entityCounts = result.entityCounts;
+                normalizedEntityCounts = result.normalizedEntityCounts;
+                pageTitle = result.pageTitle;
+                totalSentences = result.totalSentences;
+                renderAnalyzeTab();
+            }
+        });
+    });
 });
