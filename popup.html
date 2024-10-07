@@ -7,11 +7,15 @@
     <link href="libs/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 text-gray-900 font-sans">
-    <div id="root" class="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-md mt-6">
-        <h1 class="text-3xl font-semibold mb-6 text-center text-blue-700">Social Bias Analyzer</h1>
+    <div id="root" class="popup-container w-96 h-auto mx-auto p-6 bg-white rounded-lg shadow-md mt-6">
+        <h1 class="text-5xl font-semibold mb-6 text-center text-blue-700">Social Bias Analyzer</h1>
         <div id="tab-buttons" class="mb-6 flex justify-center"></div>
         <div id="content"></div>
     </div>
-    <script src="popup.js"></script>
+    
+    <link href="libs/tailwind.min.css" rel="stylesheet">
+    <script src="libs/chart.min.js"></script>
+    <script type="module" src="charts.js"></script> <!-- custom file btw-->
+    <script type="module" src="popup.js"></script>
 </body>
 </html>
