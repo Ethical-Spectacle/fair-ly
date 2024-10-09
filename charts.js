@@ -1,11 +1,14 @@
-// Donut Chart (Using Chart.js)
+import { UI_COLORS, ASPECT_COLORS } from './helpers.js';
+
+// -------------------------------- HERO SCORE PIE CHART --------------------------------//
 export function createDonutChart(canvasId, biasedCount, totalSentences, colors) {
     const ctx = document.getElementById(canvasId).getContext('2d');
 
-    // Calculate percentages
+    // calculate percentages
     const biasedPercentage = (biasedCount / totalSentences) * 100;
     const fairPercentage = 100 - biasedPercentage;
 
+    // create chart (using Chart.js in libs for security policy)
     new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -13,20 +16,19 @@ export function createDonutChart(canvasId, biasedCount, totalSentences, colors) 
             datasets: [{
                 data: [biasedPercentage, fairPercentage],
                 backgroundColor: colors,
-                borderColor: '#ffffff',
-                borderWidth: 2,
+                borderWidth: 0, // no border
                 hoverOffset: 10,
-                hoverBackgroundColor: colors.map(color => darkenColor(color, 20)), // Darker shade on hover
+                hoverBackgroundColor: colors.map(color => darkenColor(color, 20)), // darken shade on hover
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false, // Allow us to control the height via CSS
+            maintainAspectRatio: false, // sizing these is a pain, this lets us just use the css in popup.js
             plugins: {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        color: '#4a4a4a',  // Sleek dark gray color for text
+                        color: UI_COLORS['darkText'], 
                         font: {
                             size: 12,
                         }
@@ -34,10 +36,10 @@ export function createDonutChart(canvasId, biasedCount, totalSentences, colors) 
                 },
                 tooltip: {
                     enabled: true,
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',  // Dark tooltip for better contrast
-                    titleColor: '#ffffff',
-                    bodyColor: '#ffffff',
-                    borderColor: '#666',
+                    backgroundColor: UI_COLORS['veryLightColor'],
+                    titleColor: UI_COLORS['veryDarkColor'],
+                    bodyColor: UI_COLORS['sortaDarkColor'],
+                    borderColor: UI_COLORS['sortaDarkColor'],
                     borderWidth: 1,
                     cornerRadius: 6,
                     callbacks: {
@@ -53,25 +55,31 @@ export function createDonutChart(canvasId, biasedCount, totalSentences, colors) 
                 animateRotate: true,
                 animateScale: true
             },
-            cutout: '60%'  // Inner radius for a sleek donut shape
+            cutout: '60%' 
         }
     });
 }
 
 
+// -------------------------------- SEMICIRCLE PIE CHART FOR ENTITIES --------------------------------//
 export function createCircularFillChart(canvasId, value, maxValue, count, color) {
+    // get canvas from DOM, have to run this after it exists
     const canvas = document.getElementById(canvasId);
+
+    // double check canvas exists
     if (!canvas) {
         console.error(`Canvas element with ID "${canvasId}" not found.`);
-        return; // Exit the function if the canvas element doesn't exist
+        return;  
     }
 
+    // get 2D context for canvas
     const ctx = canvas.getContext('2d');
     if (!ctx) {
         console.error(`Could not get 2D context for canvas with ID "${canvasId}".`);
         return;
     }
 
+    // render donut
     const chart = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -80,15 +88,15 @@ export function createCircularFillChart(canvasId, value, maxValue, count, color)
                 data: [value, maxValue - value],
                 backgroundColor: [
                     color,
-                    '#e0e0e0'  // Light gray for unfilled part
+                    UI_COLORS['semicircleBG']
                 ],
-                borderWidth: 1,
+                borderWidth: 0,
                 hoverOffset: 10
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false, // This will allow us to control the height via CSS styles
+            maintainAspectRatio: false, // sizing these is a pain, this lets us just use the css in popup.js
             cutout: '75%',
             rotation: -90,
             circumference: 180,
@@ -97,27 +105,26 @@ export function createCircularFillChart(canvasId, value, maxValue, count, color)
                     display: false
                 },
                 tooltip: {
-                    enabled: false // Disable tooltips
+                    enabled: false
                 }
             },
             animation: {
                 animateRotate: true,
                 animateScale: true,
                 onProgress: function(animation) {
-                    // Draw the count value in the center
+                    // draw the count in the center (at the start, which means we have to do it every frame)
                     const { width, height } = chart;
                     const centerX = width / 2;
-                    const centerY = height / 1.3; // Adjusted for semicircle
+                    const centerY = height / 1.3; 
             
-                    // Clear the canvas before drawing the new frame
+                    // clear canvas before drawing the new frame
                     ctx.clearRect(0, 0, width, height);
-                    // Redraw the chart background (optional if you need to redraw the existing state)
                     chart.draw();
             
-                    // Draw the count value
+                    // draw the count
                     ctx.save();
-                    ctx.font = 'bold 2em Arial'; // Increase the font size here (e.g., '2em' or '30px')
-                    ctx.fillStyle = '#4a4a4a'; // Dark gray text color
+                    ctx.font = 'bold 18pt Arial';
+                    ctx.fillStyle = UI_COLORS['sortaDarkColor'];
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(count.toString(), centerX, centerY);
@@ -130,26 +137,27 @@ export function createCircularFillChart(canvasId, value, maxValue, count, color)
     });
 }
 
+
+// -------------------------------- ASPECTS RADAR CHART --------------------------------//
 export function createRadarChart(canvasId, data) {
     const ctx = document.getElementById(canvasId).getContext('2d');
 
-    const labels = data.map(item => item.aspect); // Aspects will be the labels on radar chart
-    const values = data.map(item => item.value);  // Aspect counts will be the data points
-
-    // Define colors for the radar chart
-    const backgroundColor = 'rgba(54, 162, 235, 0.2)'; // Light blue background for radar
-    const borderColor = 'rgba(54, 162, 235, 1)'; // Blue border for radar
+    const labels = data.map(item => item.aspect); // labels for the points
+    const pointColors = labels.map(label => ASPECT_COLORS[label] || '#000000'); // colors for the points
+    const values = data.map(item => item.value);  // aspect counts for the points
 
     new Chart(ctx, {
         type: 'radar',
         data: {
-            labels: labels, // Labels for each aspect
+            labels: labels, // aspect names
             datasets: [{
                 label: 'Aspect Occurrences',
-                data: values, // Data points for each aspect
-                backgroundColor: backgroundColor,
-                borderColor: borderColor,
-                pointBackgroundColor: borderColor,
+                data: values, // aspect counts
+                backgroundColor: 'rgba(33, 19, 33, 0.1)', 
+                borderColor: UI_COLORS['veryDarkColor'],
+                pointBackgroundColor: pointColors,
+                pointBorderColor: UI_COLORS['veryDarkColor'],
+                pointRadius: 5,
                 borderWidth: 2
             }]
         },
@@ -158,20 +166,20 @@ export function createRadarChart(canvasId, data) {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'none',
+                    display: false, // not using
                     labels: {
-                        color: '#4a4a4a',
+                        color: UI_COLORS['sortaDarkColor'],
                         font: {
                             size: 10,
                         }
                     }
                 },
-                tooltip: {
+                tooltip: { // tooltip with count
                     enabled: true,
                     callbacks: {
                         label: function (context) {
                             const value = context.raw;
-                            return `${context.label}: ${value} occurrences`;
+                            return `${context.label} bias: ${value} occurrences`;
                         }
                     }
                 }
@@ -181,30 +189,32 @@ export function createRadarChart(canvasId, data) {
                     angleLines: {
                         display: true
                     },
-                    suggestedMin: 0, // Ensure minimum value is 0
-                    suggestedMax: Math.max(...values) + 2, // Add some buffer to the maximum value
+                    suggestedMin: 0,
+                    suggestedMax: Math.max(...values) + 1, // slight buffer for the max
                     grid: {
-                        color: 'rgba(200, 200, 200, 0.3)'
+                        color: UI_COLORS['sortaDarkColor'],
                     },
                     pointLabels: {
                         font: {
                             size: 12
                         },
-                        color: '#4a4a4a'
+                        color: UI_COLORS['sortaDarkColor']
                     }
                 }
             }
         }
     });
+    
 }
 
-
+// -------------------------------- MINI BIAS SCORE PIE CHART --------------------------------//
 export function createMiniDonutChart(canvasId, biasedScore) {
     const canvas = document.getElementById(canvasId);
 
+    // double check canvas exists
     if (!canvas) {
-        console.error(`Canvas with ID "${canvasId}" not found.`);
-        return;  // Exit early if the canvas is not found
+        console.error(`Canvas element with ID "${canvasId}" not found.`);
+        return;  
     }
 
     const ctx = canvas.getContext('2d');    
@@ -213,37 +223,37 @@ export function createMiniDonutChart(canvasId, biasedScore) {
         type: 'doughnut',
         data: {
             datasets: [{
-                data: [(biasedScore * 100), 100 - (biasedScore*100)], // Bias and remainder
-                backgroundColor: ['#ff6164', '#e0e0e0'],  // Red for bias, light gray for remainder
-                borderWidth: 0,  // No border
+                data: [(biasedScore * 100), 100 - (biasedScore*100)], // bias score and remainer (out of 100)
+                backgroundColor: ['#ff6164', UI_COLORS['semicircleBG']],  // red for bias
+                borderWidth: 0,  // no border
             }]
         },
         options: {
-            responsive: false, // Disable responsiveness since it's a fixed size
+            responsive: false, 
             maintainAspectRatio: true,
-            cutout: '75%', // Make the inner circle bigger for placing the text
+            cutout: '75%', // score gets written inside here
             plugins: {
-                legend: { display: false },  // Hide the legend
-                tooltip: { enabled: false }, // Disable tooltips
+                legend: { display: false },
+                tooltip: { enabled: false },
             },
             hover: {
-                mode: null // Disable any hover effect
+                mode: null
             },
             animation: {
                 animateRotate: true,
                 animateScale: true,
                 onComplete: function() {
-                    // Draw the bias percentage in the center
+                    // draw the bias score in the center
                     const { width, height } = chart;
                     const centerX = width / 2;
                     const centerY = height / 2;
 
                     ctx.save();
-                    ctx.font = 'bold 10px Arial'; // Font size for bias score
-                    ctx.fillStyle = '#4a4a4a'; // Dark gray text color
+                    ctx.font = 'bold 10px Arial';
+                    ctx.fillStyle = UI_COLORS['sortaDarkColor']; 
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(biasedScore.toFixed(2), centerX, centerY); // Display bias percentage
+                    ctx.fillText(biasedScore.toFixed(2), centerX, centerY); 
                     ctx.restore();
                 }
             }
@@ -253,8 +263,7 @@ export function createMiniDonutChart(canvasId, biasedScore) {
 
 
 
-
-// Helper function to darken color
+// helper function for darkening hover colors
 function darkenColor(color, percent) {
     const num = parseInt(color.slice(1), 16),
           amt = Math.round(2.55 * percent),

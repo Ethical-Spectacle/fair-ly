@@ -82,7 +82,10 @@ async function parseAspects(aspectsOutput) {
     const aspects = {};
     for (const aspect of aspectsOutput) {
         if (aspect.score > 0.5) {
-            aspects[aspect.label] = aspect.score;
+            if (!aspects[aspect.label]) {
+                aspects[aspect.label] = []; 
+            }
+            aspects[aspect.label].push(aspect.score); 
         }
     }
     return aspects;
@@ -124,14 +127,6 @@ async function processSentence(sentence) {
     return null;
 }
 
-function normalizeEntityCounts(entityCounts, totalSentences) {
-    const normalized = {};
-    for (const [key, value] of Object.entries(entityCounts)) {
-        normalized[key] = value / totalSentences;
-    }
-    return normalized;
-}
-
 async function analyzeText(text, sendResponse) {
     console.log("Analyzing text:", text);
     if (!text) return sendResponse({ error: "No text found for analysis." });
@@ -166,12 +161,9 @@ async function analyzeText(text, sendResponse) {
         });
     }
 
-    const normalizedEntityCounts = normalizeEntityCounts(totalEntityCounts, totalSentences);
-
     chrome.storage.local.set({
         analysisData: results,
         entityCounts: totalEntityCounts,
-        normalizedEntityCounts: normalizedEntityCounts,
         totalSentences: totalSentences,
         analysisTimestamp: Date.now(),
     });
@@ -179,7 +171,6 @@ async function analyzeText(text, sendResponse) {
     sendResponse({
         data: results,
         entityCounts: totalEntityCounts,
-        normalizedEntityCounts: normalizedEntityCounts,
         totalSentences: totalSentences
     });
 }
@@ -262,9 +253,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 chrome.storage.local.set({ processedSentences });
             }
 
-            // Calculate normalized entity counts
-            const normalizedEntityCounts = normalizeEntityCounts(totalEntityCounts, totalSentences);
-
             // Get tab information to save analysis data
             chrome.tabs.get(tabId, (tab) => {
                 if (chrome.runtime.lastError || !tab) {
@@ -277,7 +265,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 chrome.storage.local.set({
                     analysisData: results,
                     entityCounts: totalEntityCounts,
-                    normalizedEntityCounts: normalizedEntityCounts,
                     totalSentences: totalSentences,
                     analysisTimestamp: Date.now(),
                     pageTitle: tab.title,
@@ -290,7 +277,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 sendResponse({
                     data: results,
                     entityCounts: totalEntityCounts,
-                    normalizedEntityCounts: normalizedEntityCounts,
                     pageTitle: tab.title,
                     pageUrl: tab.url,
                     totalSentences: totalSentences
@@ -313,7 +299,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === "cleanupAlarm") {
         chrome.storage.local.get(["analysisTimestamp"], (result) => {
             if (result.analysisTimestamp && Date.now() - result.analysisTimestamp > 30 * 60 * 1000) {
-                chrome.storage.local.remove(["analysisData", "entityCounts", "normalizedEntityCounts", "analysisTimestamp"]);
+                chrome.storage.local.remove(["analysisData", "entityCounts", "analysisTimestamp"]);
             }
         });
     }

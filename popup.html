@@ -1,19 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fair-ly</title>
-  </head>
-  <body>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body style="background-color: #ffffff;">
     <div id="root">
-      <h1>Fair-ly</h1>
-      <div id="tab-buttons"></div>
-      <div id="content"></div>
+
+        <!-- header -->
+        <h1 style="font-size: 2em; color: #000000; text-align: center; margin: 20px auto 0px;">
+          ⚖️ Fair-ly
+        </h1>
+
+        <div id="tab-and-toggle-container">
+            <!-- tab buttons -->
+            <div id="tab-buttons"></div>
+
+            <!-- light dark mode toggle -->
+            <div class="theme-toggle-container">
+                <label class="switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider round">
+                        <img src="/assets/sun-icon.svg" alt="Sun Icon" class="sun-icon">
+                        <img src="/assets/moon-icon.svg" alt="Moon Icon" class="moon-icon">
+                    </span>
+                </label>
+            </div>
+        </div>
+
+        <!-- all popup.js stuff gets rendered in here -->
+        <div id="content"></div>
+
     </div>
 
     <script src="libs/chart.min.js"></script>
     <script type="module" src="charts.js"></script>
     <script type="module" src="popup.js"></script>
-  </body>
+</body>
 </html>

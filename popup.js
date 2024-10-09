@@ -1,10 +1,10 @@
-import { createElement, escapeRegExp, highlightEntities, ENTITY_COLORS } from './helpers.js';
+import { createElement, highlightEntities, ENTITY_COLORS, ASPECT_COLORS, UI_COLORS, LIGHT_THEME_COLORS, DARK_THEME_COLORS, applyStyles } from './helpers.js';
 import { createDonutChart, createCircularFillChart, createRadarChart, createMiniDonutChart } from './charts.js';
 
+// global variables
 let activeTab = 'analyze';
 let analysisData = null;
 let entityCounts = null;
-let normalizedEntityCounts = null;
 let isAnalyzing = false;
 let pageTitle = "";
 let pageUrl = "";
@@ -12,576 +12,647 @@ let progress = 0;
 let totalSentences = 0;
 let processedSentences = 0;
 
-const ASPECT_COLORS = {
-    "racial": "#ff0000",
-    "religious": "#8b4513",
-    "gender": "#800080",
-    "age": "#ffa500",
-    "nationality": "#0000ff",
-    "sexuality": "#ff69b4",
-    "socioeconomic": "#006400",
-    "educational": "#ffff00",
-    "disability": "#87cefa",
-    "political": "#ff6347",
-    "physical": "#90ee90"
-};
-
-function applyStyles(element, styles) {
-    Object.assign(element.style, styles);
+// for switching tabs
+export function setActiveTab(tab) {
+	activeTab = tab;
+	renderTabs();
+	if (tab === "analyze") {
+		renderAnalyzeTab();
+	} else {
+		renderExploreTab();
+	}
 }
 
-function setActiveTab(tab) {
-    activeTab = tab;
-    renderTabs();
-    if (tab === "analyze") {
-        renderAnalyzeTab();
-    } else {
-        renderExploreTab();
-    }
+// for dark and light mode switch
+export function applyTheme(isDarkMode) {
+	const themeColors = isDarkMode ? DARK_THEME_COLORS : LIGHT_THEME_COLORS;
+
+	// update the ui colors for the new theme (all colors in helpers.js)
+	Object.keys(themeColors).forEach(key => {
+		UI_COLORS[key] = themeColors[key];
+	});
+
+	// apply the color to the "Fair-ly" text
+	const h1Element = document.querySelector("#root h1");
+	if (h1Element) {
+		h1Element.style.color = UI_COLORS["veryDarkColor"];
+	}	
+	// apply the new background color to the body (bc it's in popup.html)
+	document.body.style.backgroundColor = UI_COLORS["veryLightColor"];
+
+	// re-render the whole thang
+	renderTabs();
+	renderAnalyzeTab();
+	renderExploreTab();
+	setActiveTab(activeTab);
 }
 
-function renderTabs() {
-    const tabButtons = document.getElementById("tab-buttons");
-    tabButtons.innerHTML = "";
-    applyStyles(tabButtons, {
-        display: "flex",
-        justifyContent: "center",
-        marginBottom: "1.5rem",
-        width: "100%",
-    });
-
-    ["analyze", "explore"].forEach((tab) => {
-        const button = createElement(
-            "button",
-            {
-                onclick: () => setActiveTab(tab),
-            },
-            tab.charAt(0).toUpperCase() + tab.slice(1)
-        );
-
-        applyStyles(button, {
-            margin: '0 0.5rem',
-            padding: '0.5rem 1rem',
-            border: 'none',
-            borderRadius: '0.375rem',
-            backgroundColor: activeTab === tab ? '#2563eb' : '#e5e7eb',
-            color: activeTab === tab ? '#ffffff' : '#1f2937',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s ease',
-            width: '45%'
-        });
-
-        button.onmouseover = () => {
-            button.style.backgroundColor = activeTab === tab ? "#2563eb" : "#3b82f6";
-        };
-        button.onmouseout = () => {
-            button.style.backgroundColor = activeTab === tab ? "#2563eb" : "#e5e7eb";
-        };
-
-        tabButtons.appendChild(button);
-    });
-}
-
-function renderAnalyzeTab() {
-  const content = document.getElementById('content');
-  content.innerHTML = '';
-  applyStyles(content, {
-      width: '500px',
-      textAlign: 'center',
-      padding: '1rem',
-      boxSizing: 'border-box',
-      margin: '0 auto',
-  });
-
-  if (!analysisData && !isAnalyzing) {
-      const button = createElement(
-          "button",
-          {
-              onclick: runAnalysis,
-          },
-          `Run Analysis on "${pageTitle || "current page"}"`
-      );
-
-      applyStyles(button, {
-          padding: "0.75rem 1.5rem",
-          backgroundColor: "#2563eb",
-          color: "#ffffff",
-          border: "none",
-          borderRadius: "0.375rem",
-          cursor: "pointer",
-          transition: "background-color 0.3s ease",
-          margin: "1rem 0",
-      });
-
-      button.onmouseover = () => {
-          button.style.backgroundColor = "#3b82f6";
-      };
-      button.onmouseout = () => {
-          button.style.backgroundColor = "#2563eb";
-      };
-
-      content.appendChild(button);
-  } else if (isAnalyzing) {
-      const paragraph = createElement("p", {}, `${processedSentences} of ${totalSentences} sentences processed.`);
-      applyStyles(paragraph, { textAlign: "center", marginBottom: "1rem" });
-      content.appendChild(paragraph);
-
-      const progressBar = createElement("div", {});
-      applyStyles(progressBar, {
-          width: "100%",
-          backgroundColor: "#e5e7eb",
-          borderRadius: "8px",
-          overflow: "hidden",
-          height: "1rem",
-          marginBottom: "1.5rem",
-      });
-
-      const progressFill = createElement("div", {});
-      applyStyles(progressFill, {
-          height: "100%",
-          backgroundColor: "#2563eb",
-          width: `${progress}%`,
-          transition: "width 0.3s ease",
-      });
-      progressBar.appendChild(progressFill);
-
-      content.appendChild(progressBar);
-  } else if (analysisData && analysisData.length > 0) {
-      // Container for both the bias score chart and the summary text, displayed side by side
-      const analysisSummaryContainer = createElement("div", {});
-      applyStyles(analysisSummaryContainer, {
-          display: 'flex',
-          alignItems: 'start',
-          justifyContent: 'space-around',
-          width: '100%',
-          padding: '10px',
-          border: '1px solid #e5e7eb',
-          borderRadius: '0.375rem',
-          backgroundColor: '#ffffff',
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-          transition: 'box-shadow 0.3s ease',
-          marginBottom: '1.5rem',
-          boxSizing: 'border-box',
-      });
-
-      analysisSummaryContainer.onmouseover = () => {
-          analysisSummaryContainer.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
-      };
-      analysisSummaryContainer.onmouseout = () => {
-          analysisSummaryContainer.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
-      };
-
-      // Bias score chart
-      const biasScoreCanvas = document.createElement('canvas');
-      biasScoreCanvas.id = 'biasScoreChart';
-      applyStyles(biasScoreCanvas, {
-          display: 'block',
-          maxWidth: "200px",
-          height: "200px", // Set a fixed height
-      });
-      analysisSummaryContainer.appendChild(biasScoreCanvas);
-
-      // Summary text
-      const summaryStats = createElement('div', {});
-      const numBiasedSentences = analysisData.length;
-      const biasedPercentage = Math.round((numBiasedSentences / totalSentences) * 100);
-      applyStyles(summaryStats, {
-          textAlign: 'left',
-          fontSize: '1rem',
-          lineHeight: '1.5rem',
-          marginLeft: '1rem',
-          flexGrow: 1, // Allow the summary text to take up remaining space
-      });
-
-      const statsText = `
-          <p><strong>${numBiasedSentences}</strong> of ${totalSentences} sentences were classified as biased.</p>
-          <p>Take <strong>${getTopCountedAspect()}</strong> statements with a grain of salt.</p>
-      `;
-      summaryStats.innerHTML = statsText;
-      analysisSummaryContainer.appendChild(summaryStats);
-
-      content.appendChild(analysisSummaryContainer);
-
-      // Add entity charts container with card style
-      const entityChartsContainer = createElement('div', {});
-      applyStyles(entityChartsContainer, {
-          display: 'flex',
-          justifyContent: 'space-between',
-          margin: '1.5rem 0',
-          flexWrap: 'wrap',
-          width: '100%',
-      });
-
-      // Append the entity canvases with fixed aspect ratio and max width
-      const entities = [
-          { id: 'genChart', label: 'Generalizations', color: ENTITY_COLORS['GEN'], count: entityCounts['GEN'] },
-          { id: 'unfairChart', label: 'Unfairness', color: ENTITY_COLORS['UNFAIR'], count: entityCounts['UNFAIR'] },
-          { id: 'stereoChart', label: 'Stereotypes', color: ENTITY_COLORS['STEREO'], count: entityCounts['STEREO'] },
-      ];
-
-      entities.forEach(({ id, label, color, count }) => {
-          const canvasContainer = createElement("div", {});
-          applyStyles(canvasContainer, {
-              width: '31%', // Set fixed width
-              padding: '5px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '0.375rem',
-              backgroundColor: '#ffffff',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-              transition: 'box-shadow 0.3s ease',
-              boxSizing: 'border-box',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center', // Align items in the center
-          });
-
-          // Create a wrapper for the canvas to maintain aspect ratio
-          const canvasWrapper = createElement("div", {});
-          applyStyles(canvasWrapper, {
-              position: 'relative',
-              width: '100%',
-              paddingBottom: '66.67%', // Maintain 3:2 aspect ratio (height = width * 2/3)
-          });
-
-          const canvas = document.createElement('canvas');
-          canvas.id = id;
-          applyStyles(canvas, {
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-          });
-          canvasWrapper.appendChild(canvas);
-          canvasContainer.appendChild(canvasWrapper);
-
-          // Create and append the entity label below the canvas
-          const labelElement = createElement('p', {}, label);
-          applyStyles(labelElement, {
-              marginTop: '7px',
-              fontWeight: 'bold',
-              fontSize: '14px',
-              color: '#4a4a4a',
-              textAlign: 'center', // Ensure the text is centered
-          });
-          canvasContainer.appendChild(labelElement);
-
-          entityChartsContainer.appendChild(canvasContainer);
-      });
-
-      content.appendChild(entityChartsContainer);
-
-
-      // Now create the charts after they are appended to the DOM
-      entities.forEach(({ id, label, color, count }) => {
-          createCircularFillChart(id, count, numBiasedSentences, count, color);
-      });
-
-    // Add aspects radar chart with card style
-    const radarChartContainer = createElement("div", {});
-    applyStyles(radarChartContainer, {
-        padding: '1rem',
-        border: '1px solid #e5e7eb',
-        borderRadius: '0.375rem',
-        backgroundColor: '#ffffff',
-        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-        transition: 'box-shadow 0.3s ease',
-        marginBottom: '1.5rem',
-        width: '100%',
-        boxSizing: 'border-box',
-        height: '300px' // Specify the height explicitly
-    });
-
-    radarChartContainer.onmouseover = () => {
-        radarChartContainer.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
-    };
-    radarChartContainer.onmouseout = () => {
-        radarChartContainer.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
-    };
-
-    const radarCanvas = document.createElement('canvas');
-    radarCanvas.id = 'aspectsChart';
-    applyStyles(radarCanvas, {
-        display: 'flex',
-        width: '100%',
-    });
-    radarChartContainer.appendChild(radarCanvas);
-    content.appendChild(radarChartContainer);
-
-    // Create charts
-    createDonutChart('biasScoreChart', numBiasedSentences, totalSentences, ['#ff6164', '#A2E09B']);
-
-    // Aspects bubble chart data
-    const aspectCounts = {};
-    analysisData.forEach(sentence => {
-        for (const [aspect, score] of Object.entries(sentence.aspects)) {
-            if (aspectCounts[aspect]) {
-                aspectCounts[aspect] += 1;
-            } else {
-                aspectCounts[aspect] = 1;
-            }
-        }
-    });
-
-    const aspectsData = Object.entries(aspectCounts).map(([aspect, count]) => ({
-        aspect: aspect,
-        value: count,
-        color: ASPECT_COLORS[aspect] || '#000000',
-    }));
-
-    createRadarChart('aspectsChart', aspectsData);
-
-  } else {
-      const paragraph = createElement('p', {}, "No analysis data available or an error occurred.");
-      applyStyles(paragraph, { textAlign: 'center', marginBottom: '1rem' });
-      content.appendChild(paragraph);
-  }
-}
-
-// Helper function to get the top counted aspect
+// helper function to get the top counted aspect
 function getTopCountedAspect() {
-  const aspectCounts = {};
+	const aspectCounts = {};
 
-  analysisData.forEach(sentence => {
-      for (const [aspect, score] of Object.entries(sentence.aspects)) {
-          if (aspectCounts[aspect]) {
-              aspectCounts[aspect] += 1;
-          } else {
-              aspectCounts[aspect] = 1;
-          }
-      }
-  });
+	analysisData.forEach(sentence => {
+		for (const [aspect, score] of Object.entries(sentence.aspects)) {
+			if (aspectCounts[aspect]) {
+				aspectCounts[aspect] += 1;
+			} else {
+				aspectCounts[aspect] = 1;
+			}
+		}
+	});
 
-  const sortedAspects = Object.entries(aspectCounts).sort((a, b) => b[1] - a[1]);
-  return sortedAspects.length > 0 ? sortedAspects[0][0].toLowerCase() : 'any';
+	const sortedAspects = Object.entries(aspectCounts).sort((a, b) => b[1] - a[1]);
+	return sortedAspects.length > 0 ? sortedAspects[0][0].toLowerCase() : 'any';
 }
 
+// render the tabs at the top of the popup
+function renderTabs() {
+	const tabButtons = document.getElementById("tab-buttons");
+	tabButtons.innerHTML = "";
+	applyStyles(tabButtons, {
+		display: "flex",
+		marginBottom: "10px",
+		width: "40%",
+		backgroundColor: UI_COLORS["tabContainerBG"],
+		padding: "10px",
+		margin: "15px 10px 30px 10px",
+		borderRadius: "10px"
+	});
+
+	// can add more tabs here
+	["analyze", "explore"].forEach((tab) => {
+		const button = createElement("button", { onclick: () => setActiveTab(tab) },
+			tab.charAt(0).toUpperCase() + tab.slice(1)
+		);
+
+		applyStyles(button, {
+			padding: '10px 15px',
+			border: 'none',
+			borderRadius: '10px',
+			backgroundColor: activeTab === tab ? UI_COLORS["activeTabBG"] : UI_COLORS["inactiveTabBG"],
+			color: activeTab === tab ? UI_COLORS['strongText'] : UI_COLORS['weakText'],
+			fontSize: '16px',
+			fontWeight: 'bold',
+			cursor: 'pointer',
+			width: '50%'
+		});
+
+		tabButtons.appendChild(button);
+	});
+}
+
+// ------------------------------------ ANALYZE TAB (default) ------------------------------------ //
+function renderAnalyzeTab() {
+	// renders in content div of popup.html
+	const content = document.getElementById('content');
+	content.innerHTML = '';
+	applyStyles(content, {
+		width: '500px',
+		textAlign: 'center',
+		padding: '0 15px 0px 15px',
+		boxSizing: 'border-box',
+		margin: '0 auto'
+	});
+
+	////////////////// UNSEEN PAGE //////////////////// if user is on a page that hasn't been analyzed in the last 30mins
+	if (!analysisData && !isAnalyzing) {
+		// button to run analysis
+		const button = createElement(
+			"button",
+			{ onclick: runAnalysis },
+			`📊 Run Bias Analysis on "${pageTitle || "current page"}"`
+		);
+		// Run button styles
+		applyStyles(button, {
+			padding: "20px 30px",
+			backgroundColor: UI_COLORS["sortaLightColor"],
+			color: UI_COLORS["veryDarkColor"],
+			border: "none",
+			borderRadius: "10px",
+			cursor: "pointer",
+			transition: "background-color 0.3s ease",
+			margin: "30px"
+		});
+
+		content.appendChild(button);
+
+	/////////////////// PROGRESS BAR /////////////////
+	} else if (isAnalyzing) {
+		// progress text
+		const paragraph = createElement(
+			"p", {},
+			`${processedSentences} of ${totalSentences} sentences processed.`
+		);
+		// progress text styles
+		applyStyles(paragraph, {
+			color: UI_COLORS["sortaDarkColor"],
+			fontSize: "14pt",
+			textAlign: "center",
+			marginBottom: "10px"
+		});
+		content.appendChild(paragraph);
+
+		// progress bar bg
+		const progressBar = createElement("div", {});
+		applyStyles(progressBar, {
+			width: "100%",
+			backgroundColor: UI_COLORS["sortaLightColor"],
+			borderRadius: "5px",
+			overflow: "hidden",
+			height: "30px",
+			marginBottom: "1.5rem"
+		});
+
+		// progress bar fill
+		const progressFill = createElement("div", {});
+		applyStyles(progressFill, {
+			height: "100%",
+			backgroundColor: UI_COLORS["progressBarBG"],
+			width: `${progress}%`,
+			transition: "width 0.3s ease"
+		});
+		progressBar.appendChild(progressFill);
+
+		content.appendChild(progressBar);
+
+	//////////////////// DATA AVAILABLE ////////////////////
+	} else if (analysisData && analysisData.length > 0) {
+		// show the tabs (hidden by default)
+		const tabButtons = document.getElementById("tab-buttons");
+		if (tabButtons) {
+			tabButtons.style.display = "flex";
+		}
+
+		//---------------------------------------------------------//
+		////////////////// start of hero card //////////////////
+
+		// container for hero chart and summary
+		const analysisSummaryContainer = createElement("div", {});
+		applyStyles(analysisSummaryContainer, {
+			display: 'flex',
+			alignItems: 'start',
+			justifyContent: 'space-around',
+			width: '100%',
+			padding: '20px 10px',
+			border: `1px solid ${UI_COLORS['sortaLightColor']}`,
+			borderRadius: '10px',
+			backgroundColor: UI_COLORS["cardBG"],
+			boxShadow: '0 1px 2px rrgba(0, 0, 0, 0.1)',
+			transition: 'box-shadow 0.3s ease',
+			marginBottom: '15px',
+			boxSizing: 'border-box'
+		});
+
+		// card shadow annimation (only really visible in light mode)
+		analysisSummaryContainer.onmouseover = () => {
+			analysisSummaryContainer.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3)';
+		};
+		analysisSummaryContainer.onmouseout = () => {
+			analysisSummaryContainer.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1)';
+		};
+
+		// Fair-ly Score Chart
+		// This will be a "Fairness Score" not a biased score.
+		// I want to add a custom function (will need to declare it in the docs)
+		// for now it's just the percent of sentences that are biased (backwards)
+		const biasScoreCanvas = document.createElement('canvas');
+		biasScoreCanvas.id = 'biasScoreChart';
+		// bias score chart styles
+		applyStyles(biasScoreCanvas, {
+			display: 'block',
+			maxWidth: "200px",
+			height: "200px"
+		});
+		analysisSummaryContainer.appendChild(biasScoreCanvas);
+
+		// 2 sentence summary of the page's bias
+		const summaryStats = createElement('div', {});
+		const numBiasedSentences = analysisData.length;
+		const biasedPercentage = Math.round((numBiasedSentences / totalSentences) * 100);
+		applyStyles(summaryStats, {
+			color: UI_COLORS['veryDarkColor'],
+			textAlign: 'left',
+			fontSize: '16pt',
+			lineHeight: '1.5',
+			marginLeft: '10px',
+			flexGrow: 1 // summary text fills the space next to the chart
+		});
+
+		// summary text
+		const statsText = `
+			<p><strong>${numBiasedSentences}</strong> of ${totalSentences} sentences were classified as biased.</p>
+			<p>Take <strong>${getTopCountedAspect()}</strong> statements with a grain of salt.</p>
+		`;
+		summaryStats.innerHTML = statsText;
+		analysisSummaryContainer.appendChild(summaryStats);
+
+		// add while summary container to the content
+		content.appendChild(analysisSummaryContainer);
+
+		////////////////// end of hero card //////////////////
+		//---------------------------------------------------------//
+		////////////////// start of entity cards //////////////////
+
+		// add entity charts containers
+		const entityChartsContainer = createElement('div', {});
+		applyStyles(entityChartsContainer, {
+			display: 'flex',
+			justifyContent: 'space-between',
+			margin: '15px 0',
+			flexWrap: 'wrap',
+			width: '100%'
+		});
+
+		// parse data into list of dicts for entity charts
+		const entities = [
+			{ id: 'genChart', label: 'Generalizations', color: ENTITY_COLORS['GEN'], count: entityCounts['GEN'] },
+			{ id: 'unfairChart', label: 'Unfairness', color: ENTITY_COLORS['UNFAIR'], count: entityCounts['UNFAIR'] },
+			{ id: 'stereoChart', label: 'Stereotypes', color: ENTITY_COLORS['STEREO'], count: entityCounts['STEREO'] }
+		];
+
+		// make a chart for each item in the list
+		entities.forEach(({ id, label, color, count }) => {
+			// container for each chart and text
+			const canvasContainer = createElement("div", {});
+			applyStyles(canvasContainer, {
+				width: '31%',
+				padding: '10px 10px 0px 10px',
+				border: `1px solid ${UI_COLORS['sortaLightColor']}`,
+				borderRadius: '10px',
+				backgroundColor: UI_COLORS["cardBG"],
+				boxSizing: 'border-box',
+				display: 'flex',
+				flexDirection: 'column',
+				alignItems: 'center'
+			});
+
+			// had to make this because they were going really tall and couldn't control it
+			const canvasWrapper = createElement("div", {});
+			applyStyles(canvasWrapper, {
+				position: 'relative',
+				width: '100%',
+				paddingBottom: '50%'
+			});
+
+			// create the canvas to hold the chart
+			const canvas = document.createElement('canvas');
+			canvas.id = id;
+			applyStyles(canvas, {
+				position: 'absolute',
+				top: 0,
+				left: 0,
+				width: '100%',
+				height: '100%'
+			});
+			canvasWrapper.appendChild(canvas);
+			canvasContainer.appendChild(canvasWrapper);
+
+			// entity text
+			const labelElement = createElement('p', {}, label);
+			applyStyles(labelElement, {
+				marginTop: '7px',
+				fontWeight: 'bold',
+				fontSize: '14px',
+				color: UI_COLORS['strongText'],
+				textAlign: 'center'
+			});
+			canvasContainer.appendChild(labelElement);
+
+			// card shadow annimation (only really visible in light mode)
+			canvasContainer.onmouseover = () => {
+				canvasContainer.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
+			};
+			canvasContainer.onmouseout = () => {
+				canvasContainer.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+			};
+
+			entityChartsContainer.appendChild(canvasContainer);
+		});
+
+		content.appendChild(entityChartsContainer);
+
+		//////////////// end of entity cards /////////////////
+		//---------------------------------------------------------//
+		//////////////// start of aspects radar chart /////////////////
+
+		// create container to hold aspects radar chart
+		const radarChartContainer = createElement("div", {});
+		applyStyles(radarChartContainer, {
+			padding: '10px',
+			border: `1px solid ${UI_COLORS['sortaLightColor']}`,
+			borderRadius: '10px',
+			backgroundColor: UI_COLORS["cardBG"],
+			boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+			transition: 'box-shadow 0.3s ease',
+			marginBottom: '15px',
+			width: '100%',
+			boxSizing: 'border-box',
+			height: '300px'
+		});
+
+		const radarCanvas = document.createElement('canvas');
+		radarCanvas.id = 'aspectsChart';
+		applyStyles(radarCanvas, {
+			display: 'flex',
+			width: '100%'
+		});
+		radarChartContainer.appendChild(radarCanvas);
+		content.appendChild(radarChartContainer);
+
+		// card shadow annimation (only really visible in light mode)
+		radarChartContainer.onmouseover = () => {
+			radarChartContainer.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
+		};
+		radarChartContainer.onmouseout = () => {
+			radarChartContainer.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+		};
+
+		////////////// end of aspects radar chart /////////////////
+		//---------------------------------------------------------//
+		////////////// start of rendering the charts (functions in charts.js) /////////////////
+
+		// render hero score chart
+		createDonutChart('biasScoreChart', numBiasedSentences, totalSentences, ['#ff6164', '#A2E09B']);
+
+		// render entity charts
+		entities.forEach(({ id, label, color, count }) => {
+			createCircularFillChart(id, count, numBiasedSentences, count, color);
+		});
+
+		// render aspects radar chart
+		// count the aspect occurrences
+		const aspectCounts = {};
+		analysisData.forEach(sentence => {
+			for (const [aspect, score] of Object.entries(sentence.aspects)) {
+				if (aspectCounts[aspect]) {
+					aspectCounts[aspect] += 1;
+				} else {
+					aspectCounts[aspect] = 1;
+				}
+			}
+		});
+
+		// create the data for the radar chart
+		const aspectsData = Object.entries(aspectCounts).map(([aspect, count]) => ({
+			aspect: aspect,
+			value: count,
+			color: ASPECT_COLORS[aspect] || '#000000'
+		}));
+
+		createRadarChart('aspectsChart', aspectsData);
+
+		////////////// end of rendering the charts /////////////////
+		//---------------------------------------------------------//
+
+	} else {
+		const paragraph = createElement('p', {}, "No analysis data available or an error occurred.");
+		applyStyles(paragraph, { textAlign: 'center', marginBottom: '1rem' });
+		content.appendChild(paragraph);
+	}
+}
+
+// ------------------------------------ EXPLORE TAB ------------------------------------ //
 function renderExploreTab() {
-  const content = document.getElementById("content");
-  content.innerHTML = "";
+	const content = document.getElementById("content");
+	content.innerHTML = "";
 
-  if (!analysisData || analysisData.length === 0) {
-      const paragraph = createElement(
-          "p",
-          {},
-          "No analysis data available. Please run an analysis first."
-      );
-      applyStyles(paragraph, { textAlign: "center" });
-      content.appendChild(paragraph);
-      return;
-  }
+	// redundant check for analysis data
+	if (!analysisData || analysisData.length === 0) {
+		const paragraph = createElement(
+			"p", {},
+			"No analysis data available. Please run an analysis first."
+		);
+		applyStyles(paragraph, { textAlign: "center" });
+		content.appendChild(paragraph);
+		return;
+	}
 
-  try {
-      const sortedData = [...analysisData].sort(
-          (a, b) => b.biasScore - a.biasScore
-      );
+	// render the cards
+	try {
+		// sort the data by biasScore (descending)
+		const sortedData = [...analysisData].sort(
+			(a, b) => b.biasScore - a.biasScore
+		);
 
-      const list = createElement("ul", {});
-      applyStyles(list, {
-          listStyleType: "none",
-          padding: "0",
-          margin: "0",
-      });
+		// list to hold the cards
+		const list = createElement("ul", {});
+		applyStyles(list, {
+			listStyleType: "none",
+			padding: "0",
+			margin: "0"
+		});
 
-      sortedData.forEach((item, index) => {
-          const listItem = createElement('li', {});
-          applyStyles(listItem, {
-              padding: '1rem',
-              border: '1px solid #e5e7eb',
-              borderRadius: '0.375rem',
-              backgroundColor: '#ffffff',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-              transition: 'box-shadow 0.3s ease',
-              marginBottom: '1rem',
-              position: 'relative',
-              overflow: 'hidden'
-          });
+		// create a card for each item in the list
+		sortedData.forEach((item, index) => {
+			const listItem = createElement('li', {});
+			applyStyles(listItem, {
+				padding: '15px',
+				border: `1px solid ${UI_COLORS['sortaLightColor']}`,
+				borderRadius: '10px',
+				backgroundColor: UI_COLORS["cardBG"],
+				boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+				transition: 'box-shadow 0.3s ease',
+				marginBottom: '15px',
+				position: 'relative',
+				overflow: 'hidden'
+			});
 
-          listItem.onmouseover = () => {
-              listItem.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
-          };
-          listItem.onmouseout = () => {
-              listItem.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
-          };
+			// card shadow annimation (only really visible in light mode)
+			listItem.onmouseover = () => {
+				listItem.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
+			};
+			listItem.onmouseout = () => {
+				listItem.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+			};
 
-          if (item.sentence) {
-              const highlightedSentence = highlightEntities(
-                  item.sentence,
-                  item.entities
-              );
-              const sentenceElem = createElement("p", {});
-              applyStyles(sentenceElem, {
-                  marginBottom: "0.5rem",
-                  fontSize: "1.125rem",
-                  lineHeight: "1.75rem",
-              });
-              sentenceElem.innerHTML = highlightedSentence;
-              listItem.appendChild(sentenceElem);
+			if (item.sentence) {
+				// parse sentence onto the card
+				const highlightedSentence = highlightEntities(item.sentence, item.entities); // need to fix this function in helpers.js
+				const sentenceElem = createElement("p", {});
+				applyStyles(sentenceElem, {
+					color: UI_COLORS['sortaDarkColor'],
+					marginBottom: "5px",
+					fontSize: "14pt",
+					lineHeight: "1.25"
+				});
+				sentenceElem.innerHTML = highlightedSentence;
+				listItem.appendChild(sentenceElem);
 
-              // Container for aspect tags and mini donut chart
-              const tagsAndMiniChartContainer = createElement('div', {});
-              applyStyles(tagsAndMiniChartContainer, {
-                  display: 'flex',              // Flexbox layout
-                  flexDirection: 'row',         // Row direction to keep items on the same line
-                  alignItems: 'left',         // Vertically center items
-                  marginTop: '1rem',
-                  position: 'relative',
-                  gap: '1rem',
-              });
+				// container for bias score donut and aspect tags
+				const tagsAndMiniChartContainer = createElement('div', {});
+				applyStyles(tagsAndMiniChartContainer, {
+					display: 'flex',
+					flexDirection: 'row',
+					alignItems: 'left',
+					marginTop: '10px',
+					position: 'relative',
+					gap: '5px'
+				});
 
-              // Create aspect tags (allow multiple)
-              const aspectsContainer = createElement('div', {});
-              applyStyles(aspectsContainer, {
-                  display: 'flex',               // Flex layout for wrapping aspect tags
-                  flexWrap: 'wrap',              // Allow wrapping of tags if there are many
-                  gap: '5px',                    // Spacing between tags
-              });
+				// create container for aspect tags
+				const aspectsContainer = createElement('div', {});
+				applyStyles(aspectsContainer, {
+					display: 'flex',
+					flexWrap: 'wrap',
+					gap: '5px'
+				});
 
-              Object.keys(item.aspects).forEach(aspect => {
-                  const aspectTag = createElement('span', {}, aspect);
-                  applyStyles(aspectTag, {
-                      backgroundColor: ASPECT_COLORS[aspect] || '#ccc',
-                      color: '#fff',
-                      padding: '8px 10px 5px 10px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      lineHeight: '12px', // Set line height equal to the font size to eliminate extra space
-                  });
-                  aspectsContainer.appendChild(aspectTag);
-              });
+				// display any scores over 0.5 (our model only usually one but CAN return multiple, so if we train it on multi-label data this will work.
+				Object.keys(item.aspects).forEach(aspect => {
+					const scores = item.aspects[aspect];
+					scores.forEach(score => {
+						// create tag for the aspect
+						const aspectTag = createElement('span', {}, `${aspect}: ${100 * score.toFixed(2)}%`);
+						applyStyles(aspectTag, {
+							backgroundColor: ASPECT_COLORS[aspect] || '#ccc',
+							color: UI_COLORS['sortaDarkColor'],
+							padding: '8px 10px 5px 10px', // had weird spacing issues, prob could've just center aligned it
+							borderRadius: '5px',
+							fontSize: '12px'
+						});
+						aspectsContainer.appendChild(aspectTag);
+					});
+				});
 
-              // Mini donut chart for bias score
-              const miniDonutCanvas = createElement('canvas', { id: `mini-donut-${index}` });
-              applyStyles(miniDonutCanvas, {
-                  width: '30px',  // Set size to 30x30 for mini chart
-                  height: '30px',
-              });
+				// mini donut for the bias score
+				const miniDonutCanvas = createElement('canvas', { id: `mini-donut-${index}` });
+				applyStyles(miniDonutCanvas, {
+					width: '30px', // Set size to 30x30 for mini chart
+					height: '30px'
+				});
 
-              // Append the tags and mini chart properly
-              tagsAndMiniChartContainer.appendChild(miniDonutCanvas);   // Mini donut second
-              tagsAndMiniChartContainer.appendChild(aspectsContainer);  // Tags first
-              listItem.appendChild(tagsAndMiniChartContainer);          // Add container to list item
+				// append the mini donut and aspect tags to the card
+				tagsAndMiniChartContainer.appendChild(miniDonutCanvas);
+				tagsAndMiniChartContainer.appendChild(aspectsContainer);
 
-              list.appendChild(listItem);
+				// append the the mini donut and aspect tags to the card
+				listItem.appendChild(tagsAndMiniChartContainer);
+				// add the card to the list
+				list.appendChild(listItem);
 
-              // Create the mini donut chart AFTER ensuring the canvas is appended to the DOM
-              setTimeout(() => {
-                  const donutElement = document.getElementById(`mini-donut-${index}`);
-                  if (donutElement) {
-                      createMiniDonutChart(`mini-donut-${index}`,item.biasScore);
-                  }
-              }, 0); // Small timeout to ensure DOM is ready
-          } else {
-              const errorElem = createElement("p", {}, "Error: Missing sentence");
-              applyStyles(errorElem, {
-                  marginBottom: "0.5rem",
-                  color: "#f87171",
-              });
-              listItem.appendChild(errorElem);
-          }
-      });
+				// weird but have to wait until entire dom is loaded to render the mini donut charts
+				setTimeout(() => {
+					const donutElement = document.getElementById(`mini-donut-${index}`);
+					if (donutElement) {
+						createMiniDonutChart(`mini-donut-${index}`, item.biasScore);
+					}
+				}, 0);
 
-      content.appendChild(list);
-  } catch (error) {
-      const errorElem = createElement(
-          "p",
-          {},
-          `An error occurred: ${error.message}`
-      );
-      applyStyles(errorElem, { color: "#f87171" });
-      content.appendChild(errorElem);
-  }
+			} else {
+				const errorElem = createElement("p", {}, "Error: Missing sentence");
+				applyStyles(errorElem, {
+					marginBottom: "10px",
+					color: "#f87171"
+				});
+				listItem.appendChild(errorElem);
+			}
+		});
+
+		content.appendChild(list);
+	} catch (error) {
+		const errorElem = createElement(
+			"p",
+			{},
+			`An error occurred: ${error.message}`
+		);
+		applyStyles(errorElem, { color: "#f87171" });
+		content.appendChild(errorElem);
+	}
 }
 
-
-
-
-
-
-
-
-
+// ------------------------------------ ANALYSIS FUNCTION ------------------------------------ // communicates with background.js to run the analysis
 async function runAnalysis() {
-  isAnalyzing = true;
-  progress = 0;
-  processedSentences = 0;
+	isAnalyzing = true;
+	progress = 0;
+	processedSentences = 0;
 
-  try {
-      // Get the current tab
-      const tab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
+	try {
+		// get the content from the active tab
+		const tab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
 
-      // Send a message to the background script to start the analysis
-      chrome.runtime.sendMessage({ action: 'runAnalysis', tabId: tab.id }, (response) => {
-          if (chrome.runtime.lastError || response.error) {
-              console.error("Error during analysis:", chrome.runtime.lastError || response.error);
-              isAnalyzing = false;
-              progress = 0;
-              renderAnalyzeTab();
-              alert("An error occurred during analysis. Make sure you're on a valid webpage.");
-              return;
-          }
+		// send message to background.js to start the analysis (runs there for efficiency)
+		chrome.runtime.sendMessage({ action: 'runAnalysis', tabId: tab.id }, (response) => {
+			if (chrome.runtime.lastError || response.error) {
+				console.error("Error during analysis:", chrome.runtime.lastError || response.error);
+				isAnalyzing = false;
+				progress = 0;
+				renderAnalyzeTab();
+				alert("An error occurred during analysis. Make sure you're on a valid webpage.");
+				return;
+			}
 
-          // Update the data and render the results
-          analysisData = response.data;
-          entityCounts = response.entityCounts;
-          normalizedEntityCounts = response.normalizedEntityCounts;
-          pageTitle = response.pageTitle;
-          pageUrl = response.pageUrl;
-          totalSentences = response.totalSentences;
-          isAnalyzing = false;
-          progress = 100;
-          renderAnalyzeTab();
-      });
+			// update the data and render the results
+			analysisData = response.data;
+			entityCounts = response.entityCounts;
+			pageTitle = response.pageTitle;
+			pageUrl = response.pageUrl;
+			totalSentences = response.totalSentences;
+			isAnalyzing = false;
+			progress = 100;
+			renderAnalyzeTab();
+		});
 
-      // Set an interval to update the progress every second
-      const progressInterval = setInterval(() => {
-          chrome.storage.local.get(['processedSentences', 'totalSentences'], (result) => {
-              if (result.totalSentences > 0) {
-                  processedSentences = result.processedSentences || 0;
-                  totalSentences = result.totalSentences;
-                  progress = Math.min((processedSentences / totalSentences) * 100, 100);
-                  renderAnalyzeTab();
-              }
+		// runs every second to update the progress bar
+		const progressInterval = setInterval(() => {
+			chrome.storage.local.get(['processedSentences', 'totalSentences'], (result) => {
+				if (result.totalSentences > 0) {
+					processedSentences = result.processedSentences || 0;
+					totalSentences = result.totalSentences;
+					progress = Math.min((processedSentences / totalSentences) * 100, 100);
+					renderAnalyzeTab();
+				}
 
-              // Clear interval if analysis is complete
-              if (progress === 100) {
-                  clearInterval(progressInterval);
-              }
-          });
-      }, 1000);
+				// clear it when done
+				if (progress === 100) { clearInterval(progressInterval); }
+			});
+		}, 1000);
 
-  } catch (error) {
-      console.error("Error during analysis:", error);
-      isAnalyzing = false;
-      progress = 0;
-      renderAnalyzeTab();
-      alert("An error occurred during analysis. Make sure you're on a valid webpage.");
-  }
+	} catch (error) {
+		console.error("Error during analysis:", error);
+		isAnalyzing = false;
+		progress = 0;
+		renderAnalyzeTab();
+		alert("An error occurred during analysis. Make sure you're on a valid webpage.");
+	}
 }
 
-
-
-
+// ------------------------------------ EVENT LISTENERS ------------------------------------ //
+// event listener for when the popup is opened
 document.addEventListener('DOMContentLoaded', () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const currentTab = tabs[0];
-        pageTitle = currentTab.title;
-        pageUrl = currentTab.url;
-        renderTabs();
-        renderAnalyzeTab();
+	chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+		const currentTab = tabs[0];
+		pageTitle = currentTab.title;
+		pageUrl = currentTab.url;
+		renderAnalyzeTab();
+		renderTabs();
 
-        chrome.storage.local.get(['analysisData', 'entityCounts', 'normalizedEntityCounts', 'totalSentences', 'analysisTimestamp', 'pageTitle', 'pageUrl'], (result) => {
-            if (result.analysisData &&
-                result.pageUrl === pageUrl &&
-                Date.now() - result.analysisTimestamp < 30 * 60 * 1000) {
-                analysisData = result.analysisData;
-                entityCounts = result.entityCounts;
-                normalizedEntityCounts = result.normalizedEntityCounts;
-                pageTitle = result.pageTitle;
-                totalSentences = result.totalSentences;
-                renderAnalyzeTab();
-            }
-        });
-    });
+		chrome.storage.local.get(['analysisData', 'entityCounts', 'totalSentences', 'analysisTimestamp', 'pageTitle', 'pageUrl'], (result) => {
+			if (result.analysisData &&
+				result.pageUrl === pageUrl &&
+				Date.now() - result.analysisTimestamp < 30 * 60 * 1000) {
+				analysisData = result.analysisData;
+				entityCounts = result.entityCounts;
+				pageTitle = result.pageTitle;
+				totalSentences = result.totalSentences;
+				renderAnalyzeTab();
+			}
+		});
+	});
+});
+
+// event listener for when the theme toggle is changed
+document.getElementById('theme-toggle').addEventListener('change', (event) => {
+	const isDarkMode = event.target.checked;
+	applyTheme(isDarkMode);
+	chrome.storage.local.set({ theme: isDarkMode ? 'dark' : 'light' });
+});
+
+// load saved theme from local storage
+chrome.storage.local.get(['theme'], (result) => {
+	const isDarkMode = result.theme === 'dark';
+	const themeToggle = document.getElementById('theme-toggle');
+	if (themeToggle) {
+		themeToggle.checked = isDarkMode;
+	}
+	applyTheme(isDarkMode);
 });

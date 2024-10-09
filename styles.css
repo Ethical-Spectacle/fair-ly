@@ -1,111 +1,102 @@
-/* Basic reset */
-* {
-  box-sizing: border-box;
+#tab-and-toggle-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 0 0;
   margin: 0;
-  padding: 0;
 }
 
-html,
-body {
-  width: 100%;
-  height: 100%;
-  overflow: hidden; /* Prevent scrolling inside the popup */
+#tab-buttons {
+  display: flex;
 }
 
-.popup-container {
-  width: 680px; /* Matches w-96 */
-  max-width: 100%;
-  max-height: 100%;
+.theme-toggle-container {
+  display: flex;
+  justify-content: end;
+  align-items: top;
+  flex-grow: 1;
 }
 
-/* Highlighted entity styles */
-.highlighted-entity {
-  padding: 2px 4px;
-  border-radius: 4px;
-  background-color: #ffe4b5; /* A more subtle color */
-  color: #000;
-  position: relative;
-  transition: all 0.2s;
-}
-
-.highlighted-entity:hover {
-  filter: brightness(90%);
-}
-
-.highlighted-entity:hover::after {
-  content: attr(data-entity-type);
-  position: absolute;
-  bottom: 120%;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #333;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-/* Custom tooltip style for entity types */
-.tooltip {
+.switch {
   position: relative;
   display: inline-block;
+  width: 80px;
+  height: 40px;
+  margin-right: 10px; 
 }
 
-.tooltip .tooltip-text {
-  visibility: hidden;
-  width: auto;
-  background-color: #333;
-  color: #fff;
-  text-align: center;
-  padding: 5px;
-  border-radius: 6px;
-  position: absolute;
-  z-index: 1;
-  bottom: 125%;
-  left: 50%;
-  transform: translateX(-50%);
+.switch input {
   opacity: 0;
-  transition: opacity 0.3s;
+  width: 0;
+  height: 0;
 }
 
-.tooltip:hover .tooltip-text {
-  visibility: visible;
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 10px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 30px;
+  width: 30px;
+  left: 5px;
+  bottom: 5px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 10px;
+}
+
+/* Sun and Moon Icons */
+.sun-icon, .moon-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  transition: 0.4s;
+}
+
+.sun-icon {
+  left: 11px;
   opacity: 1;
 }
 
-/* Custom progress bar styles */
-.progress-bar {
-  width: 100%;
-  background-color: #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-  height: 1rem;
-  margin-bottom: 1.5rem;
+.moon-icon {
+  right: 11px;
+  opacity: 0;
 }
 
-.progress-bar-fill {
-  height: 100%;
-  background-color: #2563eb;
-  width: 0;
-  transition: width 0.3s ease;
+input:checked + .slider {
+  background-color: #6cd27a;
 }
 
-/* Styles for explore tab hover effects */
-.p-4.hover\:shadow-md:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -4px rgba(0, 0, 0, 0.1);
+input:checked + .slider:before {
+  transform: translateX(40px);
 }
 
-/* Circular chart container styles */
-.circular-chart {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  margin: 1.5rem auto;
+/* Toggle icons' visibility on switch */
+input:checked + .slider .sun-icon {
+  opacity: 0; 
 }
 
-.circular-chart canvas {
-  margin: 0 auto;
+input:checked + .slider .moon-icon {
+  opacity: 1; 
+}
+
+/* Slider rounding */
+.slider.round {
+  border-radius: 10px;
+}
+
+.slider.round:before {
+  border-radius: 10px;
 }
