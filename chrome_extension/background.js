@@ -110,7 +110,8 @@ async function processSentence(sentence) {
         const aspectsScores = await makeApiCall(API_ENDPOINTS.aspectsClassification, {
             "inputs": sentence,
             "parameters": {
-                "top_k": 11
+                "top_k": 11,
+                "function_to_apply": "sigmoid"
             }
         });
         const aspects = await parseAspects(aspectsScores);
