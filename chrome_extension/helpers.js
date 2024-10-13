@@ -1,10 +1,22 @@
 ////////////////// COLORS /////////////////////
 
-// Define ENTITY_COLORS
 export const ENTITY_COLORS = {
-    GEN: '#BAE1FF',   // blue
-    UNFAIR: '#FFB3BA', // red
-    STEREO: '#D3B3FF'  // purple
+    GEN: '#BAE1FF',   // light blue
+    UNFAIR: '#FFB3BA', // light red
+    STEREO: '#D3B3FF'  // light purple
+};
+
+// entity colors (used in charts and highlights)
+export const LIGHT_ENTITY_COLORS = {
+    GEN: '#BAE1FF',   // light blue
+    UNFAIR: '#FFB3BA', // light red
+    STEREO: '#D3B3FF'  // light purple
+};
+
+export const DARK_ENTITY_COLORS = {
+    GEN: '#004466',   // dark blue
+    UNFAIR: '#660000', // dark red
+    STEREO: '#4D004D'  // dark purple
 };
 
 // used in explore tab tags

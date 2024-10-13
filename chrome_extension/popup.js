@@ -1,4 +1,4 @@
-import { createElement, highlightEntities, ENTITY_COLORS, ASPECT_COLORS, UI_COLORS, LIGHT_THEME_COLORS, DARK_THEME_COLORS, applyStyles } from './helpers.js';
+import { createElement, highlightEntities, ENTITY_COLORS, LIGHT_ENTITY_COLORS, DARK_ENTITY_COLORS, ASPECT_COLORS, UI_COLORS, LIGHT_THEME_COLORS, DARK_THEME_COLORS, applyStyles } from './helpers.js';
 import { createDonutChart, createCircularFillChart, createRadarChart, createMiniDonutChart } from './charts.js';
 
 // global variables
@@ -26,6 +26,12 @@ export function setActiveTab(tab) {
 // for dark and light mode switch
 export function applyTheme(isDarkMode) {
 	const themeColors = isDarkMode ? DARK_THEME_COLORS : LIGHT_THEME_COLORS;
+	const entityColors = isDarkMode ? DARK_ENTITY_COLORS : LIGHT_ENTITY_COLORS;
+
+	// Update ENTITY_COLORS props instead of reassigning the object
+	Object.keys(entityColors).forEach(key => {
+		ENTITY_COLORS[key] = entityColors[key];
+	});
 
 	// update the ui colors for the new theme (all colors in helpers.js)
 	Object.keys(themeColors).forEach(key => {
@@ -505,7 +511,7 @@ function renderExploreTab() {
 						const aspectTag = createElement('span', {}, `${aspect}: ${100 * score.toFixed(2)}%`);
 						applyStyles(aspectTag, {
 							backgroundColor: ASPECT_COLORS[aspect] || '#ccc',
-							color: UI_COLORS['sortaDarkColor'],
+							color: "#000000",
 							padding: '8px 10px 5px 10px', // had weird spacing issues, prob could've just center aligned it
 							borderRadius: '5px',
 							fontSize: '12px'
