@@ -418,6 +418,8 @@ function renderAnalyzeTab() {
 }
 
 // ------------------------------------ EXPLORE TAB ------------------------------------ //
+// render the explore tab with delete buttons// render the explore tab with delete buttons
+// render the explore tab with delete buttons
 function renderExploreTab() {
 	const content = document.getElementById("content");
 	content.innerHTML = "";
@@ -450,7 +452,7 @@ function renderExploreTab() {
 
 		// create a card for each item in the list
 		sortedData.forEach((item, index) => {
-			const listItem = createElement('li', {});
+			const listItem = createElement('li', { id: `sentence-card-${index}` });
 			applyStyles(listItem, {
 				padding: '15px',
 				border: `1px solid ${UI_COLORS['sortaLightColor']}`,
@@ -463,7 +465,7 @@ function renderExploreTab() {
 				overflow: 'hidden'
 			});
 
-			// card shadow annimation (only really visible in light mode)
+			// card shadow animation (only really visible in light mode)
 			listItem.onmouseover = () => {
 				listItem.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)';
 			};
@@ -473,7 +475,7 @@ function renderExploreTab() {
 
 			if (item.sentence) {
 				// parse sentence onto the card
-				const highlightedSentence = highlightEntities(item.sentence, item.entities); // need to fix this function in helpers.js
+				const highlightedSentence = highlightEntities(item.sentence, item.entities);
 				const sentenceElem = createElement("p", {});
 				applyStyles(sentenceElem, {
 					color: UI_COLORS['sortaDarkColor'],
@@ -483,6 +485,22 @@ function renderExploreTab() {
 				});
 				sentenceElem.innerHTML = highlightedSentence;
 				listItem.appendChild(sentenceElem);
+
+				// Add the delete button, pass the sentence object
+				const deleteButton = createElement("button", { onclick: () => deleteSentence(item) }, "Remove");
+				applyStyles(deleteButton, {
+					padding: "10px",
+					backgroundColor: "#ff4d4d",
+					color: "#fff",
+					border: "none",
+					borderRadius: "5px",
+					cursor: "pointer",
+					fontSize: "12px",
+					position: "absolute",
+					bottom: "10px",
+					right: "10px"
+				});
+				listItem.appendChild(deleteButton);
 
 				// container for bias score donut and aspect tags
 				const tagsAndMiniChartContainer = createElement('div', {});
@@ -503,7 +521,7 @@ function renderExploreTab() {
 					gap: '5px'
 				});
 
-				// display any scores over 0.5 (our model only usually one but CAN return multiple, so if we train it on multi-label data this will work.
+				// display any scores over 0.5
 				Object.keys(item.aspects).forEach(aspect => {
 					const scores = item.aspects[aspect];
 					scores.forEach(score => {
@@ -512,7 +530,7 @@ function renderExploreTab() {
 						applyStyles(aspectTag, {
 							backgroundColor: ASPECT_COLORS[aspect] || '#ccc',
 							color: "#000000",
-							padding: '8px 10px 5px 10px', // had weird spacing issues, prob could've just center aligned it
+							padding: '8px 10px 5px 10px',
 							borderRadius: '5px',
 							fontSize: '12px'
 						});
@@ -523,7 +541,7 @@ function renderExploreTab() {
 				// mini donut for the bias score
 				const miniDonutCanvas = createElement('canvas', { id: `mini-donut-${index}` });
 				applyStyles(miniDonutCanvas, {
-					width: '30px', // Set size to 30x30 for mini chart
+					width: '30px',
 					height: '30px'
 				});
 
@@ -531,12 +549,12 @@ function renderExploreTab() {
 				tagsAndMiniChartContainer.appendChild(miniDonutCanvas);
 				tagsAndMiniChartContainer.appendChild(aspectsContainer);
 
-				// append the the mini donut and aspect tags to the card
+				// append the mini donut and aspect tags to the card
 				listItem.appendChild(tagsAndMiniChartContainer);
 				// add the card to the list
 				list.appendChild(listItem);
 
-				// weird but have to wait until entire dom is loaded to render the mini donut charts
+				// render the mini donut charts
 				setTimeout(() => {
 					const donutElement = document.getElementById(`mini-donut-${index}`);
 					if (donutElement) {
@@ -565,6 +583,50 @@ function renderExploreTab() {
 		content.appendChild(errorElem);
 	}
 }
+
+
+// for deleting sentences in the explore tab
+function deleteSentence(sentenceToDelete) {
+	// remove from analysisData list
+	analysisData = analysisData.filter(item => item !== sentenceToDelete);
+
+	// update the entity counts (calculated based on analysis data so not automatic)
+	updateEntityCounts();
+
+	// update it in local storage so it's still there if the popup is closed
+	chrome.storage.local.set({
+		analysisData: analysisData,
+		entityCounts: entityCounts
+	}, () => {
+		// rerender the tabs with the new data
+		renderExploreTab();
+	//	renderAnalyzeTab(); // redundant
+	});
+}
+
+// updating the entity counts after deletion
+function updateEntityCounts() {
+    // init counts at 0
+    entityCounts = {
+        GEN: 0,
+        UNFAIR: 0,
+        STEREO: 0
+    };
+
+    // recalculate counts
+    analysisData.forEach((item) => {
+        if (item.entities && typeof item.entities === 'object') {
+            Object.keys(item.entities).forEach((entityType) => {
+                if (Array.isArray(item.entities[entityType])) {
+                    entityCounts[entityType] += item.entities[entityType].length; // I'd rather count B- tags instead of the full number of tokens
+                }
+            });
+        }
+    });
+}
+
+
+
 
 // ------------------------------------ ANALYSIS FUNCTION ------------------------------------ // communicates with background.js to run the analysis
 async function runAnalysis() {

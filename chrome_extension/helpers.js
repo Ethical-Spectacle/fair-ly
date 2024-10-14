@@ -108,7 +108,6 @@ export const DARK_THEME_COLORS = {
 
 
 /////////////////////////// HELPER FUNCTIONS //////////////////////////////
-
 // applying styles with js throughout lmao
 export function applyStyles(element, styles) {
     Object.assign(element.style, styles);
@@ -133,7 +132,14 @@ export function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// highlight the GUS entities in a sentence
+// Dictionary for readable entity names
+const ENTITY_NAMES = {
+    GEN: "Generalization",
+    UNFAIR: "Unfairness",
+    STEREO: "Stereotype"
+};
+
+// highlight the GUS entities in a sentence with custom tooltips
 export function highlightEntities(sentence, entities) {
     if (!entities || Object.keys(entities).length === 0) {
         return sentence;
@@ -142,7 +148,7 @@ export function highlightEntities(sentence, entities) {
     let highlightedSentence = sentence;
     const entityMap = new Map();
 
-    // map words to their entitiy types
+    // map words to their entity types
     Object.entries(entities).forEach(([entityType, entityList]) => {
         entityList.forEach(entity => {
             const entityText = entity.words.map(w => w.word.replace(/^##/, '')).join(' ');
@@ -152,15 +158,22 @@ export function highlightEntities(sentence, entities) {
 
     const sortedEntityTexts = Array.from(entityMap.keys()).sort((a, b) => b.length - a.length);
 
-    // replace each entity text with a span highlighting it
+    // replace each entity text with a span highlighting it and adding a custom tooltip with readable names
     sortedEntityTexts.forEach(entityText => {
         const entityType = entityMap.get(entityText);
+        const readableEntityName = ENTITY_NAMES[entityType] || entityType; // Fallback to entityType if not found
         const escapedEntityText = escapeRegExp(entityText);
         const regex = new RegExp(`\\b${escapedEntityText}\\b`, 'gi');
         highlightedSentence = highlightedSentence.replace(regex, match =>
-            `<span class="highlighted-entity" data-entity-type="${entityType}" style="background-color: ${ENTITY_COLORS[entityType]};">${match}</span>`
+            `<span class="highlighted-entity" 
+                data-entity="${entityType}" 
+                style="background-color: ${ENTITY_COLORS[entityType]};" 
+                data-tooltip="${readableEntityName}">
+                ${match}
+            </span>`
         );
     });
 
     return highlightedSentence;
 }
+

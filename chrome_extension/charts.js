@@ -1,5 +1,8 @@
 import { UI_COLORS, ASPECT_COLORS } from './helpers.js';
 
+// Global object to store chart instances
+const chartInstances = {};
+
 // -------------------------------- HERO SCORE PIE CHART --------------------------------//
 export function createDonutChart(canvasId, biasedCount, totalSentences, colors) {
     const ctx = document.getElementById(canvasId).getContext('2d');
