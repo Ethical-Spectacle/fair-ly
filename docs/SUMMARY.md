@@ -20,7 +20,6 @@
   * [Classification (LoRA?)](research/llms/classification-lora.md)
   * [De-biasing (Mbias)](research/llms/de-biasing.md)
   * [Explanation (Mbias)](research/llms/explanation.md)
-* [Hate Speech Detection](research/hate-speech-detection.md)
 * [Multi-Modal](research/multi-modal/README.md)
   * [Image + Text Pair Classification](research/multi-modal/binary.md)
 * [Datasets](research/datasets/README.md)
@@ -41,12 +40,6 @@
 * [To Do List](join/to-do-list.md)
 * [Discord Server](https://discord.gg/Jn6TYxwRjy)
 * [GitHub Repo](https://github.com/Ethical-Spectacle/fair-ly)
-
-## Spotlight
-
-* [The Vector Institute](spotlight/the-vector-institute.md)
-* [Ethical Spectacle Research](spotlight/ethical-spectacle-research.md)
-* [Researchers](spotlight/researchers.md)
 
 ## Misc
 

@@ -1,2 +1,0 @@
-# Ethical Spectacle Research
-
