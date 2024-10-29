@@ -6,7 +6,9 @@
 ## Fair-ly Toolkit <a href="#toolkit" id="toolkit"></a>
 
 * [Chrome Extension](toolkit/chrome-extension.md)
-* [Python Package](toolkit/python-package.md)
+* [Python Package](toolkit/python-package/README.md)
+  * [TextAnalyzer Pipeline](toolkit/python-package/textanalyzer-pipeline.md)
+  * [MultimodalAnalyzer Pipeline](toolkit/python-package/multimodalanalyzer-pipeline.md)
 * [Hosted APIs](toolkit/hosted-apis.md)
 
 ## Research
