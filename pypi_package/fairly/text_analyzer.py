@@ -1,8 +1,8 @@
-from .models.unbias import UnbiasModel
-from .models.fairly_aspects import FairlyAspectsModel
-from .models.gus_net import GUSNetModel
+from fairly.models.unbias import UnbiasModel
+from fairly.models.fairly_aspects import FairlyAspectsModel
+from fairly.models.gus_net import GUSNetModel
 
-class FairlyAnalyzer:
+class TextAnalyzer:
     def __init__(self, bias=None, classes=False, top_k_classes=3, ner=None):
         self.bias = bias
         self.classes = classes

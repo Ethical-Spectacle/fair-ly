@@ -486,8 +486,8 @@ function renderExploreTab() {
 				sentenceElem.innerHTML = highlightedSentence;
 				listItem.appendChild(sentenceElem);
 
-				// Add the delete button, pass the sentence object
-				const deleteButton = createElement("button", { onclick: () => deleteSentence(item) }, "Remove");
+				// delete button for misclassifications
+				const deleteButton = createElement("button", { onclick: () => deleteSentence(item) }, "Not Biased");
 				applyStyles(deleteButton, {
 					padding: "10px",
 					backgroundColor: "#ff4d4d",
@@ -498,8 +498,11 @@ function renderExploreTab() {
 					fontSize: "12px",
 					position: "absolute",
 					bottom: "10px",
-					right: "10px"
-				});
+					right: "10px",
+					width: "auto",
+					height: "auto",
+					zIndex: "10"
+				});				
 				listItem.appendChild(deleteButton);
 
 				// container for bias score donut and aspect tags

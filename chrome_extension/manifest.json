@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Social Bias Analyzer",
-    "version": "1.0",
-    "description": "Analyzes web pages for social bias using AI models",
+    "name": "Fair-ly (beta)",
+    "version": "1.1",
+    "description": "Social bias analysis of webpages (built by researchers, for researchers).",
     "permissions": [
       "activeTab",
       "storage",
