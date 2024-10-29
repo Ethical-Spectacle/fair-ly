@@ -1,8 +1,8 @@
 ---
+icon: microscope
 description: >-
   A directory and implementation of SOTA bias detection research papers, all in
   one place.
-icon: microscope
 layout:
   title:
     visible: true
@@ -19,7 +19,7 @@ layout:
 # Welcome to The Fair-ly Project
 
 {% hint style="info" %}
-The Fair-ly Project was founded and is maintained by researchers of [Ethical Spectacle Research](https://ethicalspectacle.org) and [The Vector Institute](https://vectorinstitute.ai/), who have published groundbreaking bias detection papers such as [Dbias](https://arxiv.org/abs/2208.05777) ('22), [Nbias](https://arxiv.org/abs/2308.01681) ('23), and [GUS-Net](https://arxiv.org/abs/2410.08388) ('24).&#x20;
+The Fair-ly Project was founded and is maintained by ML researchers of [Ethical Spectacle Research](https://ethicalspectacle.org) and [The Vector Institute](https://vectorinstitute.ai/), who have published ground-breaking bias detection papers such as [Dbias](https://arxiv.org/abs/2208.05777) ('22), [Nbias](https://arxiv.org/abs/2308.01681) ('23), and [GUS-Net](https://arxiv.org/abs/2410.08388) ('24).&#x20;
 {% endhint %}
 
 The Fair-ly Project is an open-source collection of resources, such as:
@@ -30,6 +30,10 @@ The Fair-ly Project is an open-source collection of resources, such as:
 
 **Ethos**: Bias-detection research should be accessible to users and developers of all levels.&#x20;
 
+***
+
+### 🛠️ Fair-ly Toolkit
+
 Here are a few tools we built for using state-of-the-art models in practice, something for everyone :).
 
 {% tabs %}
@@ -37,6 +41,8 @@ Here are a few tools we built for using state-of-the-art models in practice, som
 ### Fair-ly Extension
 
 Our Chrome extension, [Fair-ly](https://chromewebstore.google.com/detail/fair-ly/geoaacpcopfegimhbdemjkocekpncfcc), is a showcase of SOTA models. Anyone can run a bias analysis pipeline/dashboard on their webpage, no code required.
+
+{% embed url="https://chromewebstore.google.com/detail/fair-ly/geoaacpcopfegimhbdemjkocekpncfcc" %}
 
 It was created to open-the-door for new people to bias detection technology, by demonstrating it's strengths and weaknesses. The tasks it's intended to preform are:
 
@@ -47,11 +53,13 @@ It was created to open-the-door for new people to bias detection technology, by 
 Try this interactive demo for a quick look:
 
 {% @arcade/embed flowId="Du67JkGTIgON60NwyJfU" url="https://app.arcade.software/share/Du67JkGTIgON60NwyJfU" %}
-
-We'd love help on this, so join our [discord](https://discord.gg/Jn6TYxwRjy) and submit a PR on github.
 {% endtab %}
 
 {% tab title="Python Package" %}
+{% hint style="info" %}
+Walk through and run all the pipelines in this [Google Colab Notebook 💻](https://colab.research.google.com/drive/1Vwd8GuMoJNOiKDwryVgf0QFS2zKVVNlf?usp=sharing)
+{% endhint %}
+
 ### Install Our Package:
 
 ```bash
@@ -61,13 +69,13 @@ pip install the-fairly-project
 ### How to Use The Pipeline:
 
 ```python
-from fairly import SequenceClassificationPipeline, TokenClassificationPipeline
+from fairly import TextAnalyzer
 
-analyzer = FairlyAnalyzer(bias="ternary", classes=True, top_k_classes=3, ner="gus")
+analyzer = TextAnalyzer(bias="ternary", classes=True, top_k_classes=3, ner="gus")
 result = analyzer.analyze("Tall people are so clumsy.")
 ```
 
-Example Response:
+### Example Response:
 
 ```json5
 {
@@ -92,20 +100,20 @@ Example Response:
 }
 ```
 
-description will go here later
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td></td><td><code>TextAnalyzer</code> Docs</td><td></td><td><a href="toolkit/python-package/textanalyzer-pipeline.md">textanalyzer-pipeline.md</a></td></tr><tr><td></td><td><code>MultimodalAnalyzer</code> Docs</td><td></td><td><a href="toolkit/python-package/multimodalanalyzer-pipeline.md">multimodalanalyzer-pipeline.md</a></td></tr><tr><td></td><td></td><td></td><td></td></tr></tbody></table>
 {% endtab %}
 
 {% tab title="Hosted APIs" %}
-
-
-If vector could cover the clusters it'd be a big help.
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td></td><td></td><td>Binary Classification API</td><td><a href="toolkit/hosted-apis.md#binary-bias-classification">#binary-bias-classification</a></td></tr><tr><td></td><td></td><td>Types-of-bias Classification API</td><td><a href="toolkit/hosted-apis.md#fairlyaspects-types-of-bias">#fairlyaspects-types-of-bias</a></td></tr><tr><td></td><td></td><td>GUS-Net (Token Classification) API</td><td><a href="toolkit/hosted-apis.md#token-classification-of-generalizations-unfairness-and-stereotypes">#token-classification-of-generalizations-unfairness-and-stereotypes</a></td></tr></tbody></table>
 {% endtab %}
 {% endtabs %}
 
+{% hint style="info" %}
+If you're interested in contributing to the open-source tool-kit, check out our [GitHub](https://github.com/Ethical-Spectacle/fair-ly) and join our [Discord](https://discord.com/invite/Jn6TYxwRjy).
+{% endhint %}
 
+***
 
-If you're interested in contributing or organizing research projects, join our [discord server](https://discord.gg/Jn6TYxwRjy).
+### 🧠 Learn
 
-### Jump right in
-
-<table data-view="cards"><thead><tr><th></th><th></th><th data-hidden data-card-cover data-type="files"></th><th data-hidden></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><strong>Fair-ly Toolkit</strong></td><td>Chrome extension + Python package</td><td></td><td></td><td><a href="broken-reference">Broken link</a></td></tr><tr><td><strong>SOTA Research</strong></td><td>Catch up on what's new with bias detection</td><td></td><td></td><td><a href="broken-reference">Broken link</a></td></tr><tr><td><strong>Join the Project</strong></td><td>Contribute and get in touch with other researchers</td><td></td><td></td><td><a href="broken-reference">Broken link</a></td></tr></tbody></table>
+<table data-view="cards"><thead><tr><th></th><th></th><th data-hidden data-card-cover data-type="files"></th><th data-hidden></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><strong>Recent Papers</strong></td><td>Papers to cite ;)</td><td></td><td></td><td><a href="broken-reference">Broken link</a></td></tr><tr><td><strong>Binary Classification</strong></td><td>Classifying text sequences as "Biased" or "Fair."</td><td></td><td></td><td><a href="broken-reference">Broken link</a></td></tr><tr><td><strong>Multi-Class Classification</strong></td><td>Classifying text sequences into more specific classes.</td><td></td><td></td><td><a href="broken-reference">Broken link</a></td></tr><tr><td><strong>Named-Entity Recognitio</strong>n</td><td>Classifying tokens (words) that contain bias.</td><td></td><td></td><td></td></tr><tr><td><strong>Multimodal Classification</strong></td><td>Classifying image and text pairs for bias.</td><td></td><td></td><td></td></tr><tr><td><strong>Discord</strong></td><td>Ask questions or share a project.</td><td></td><td></td><td></td></tr></tbody></table>

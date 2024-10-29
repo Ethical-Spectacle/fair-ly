@@ -5,42 +5,13 @@ description: Bias analysis pipelines and SOTA models, for Python users
 
 # Python Package
 
-### Install Our Package:
+### Install: `pip install the-fairly-project`
 
-```bash
-pip install the-fairly-project
-```
+***
 
-### How to Use The Pipeline:
+### Notebook with all pipelines:
 
-```python
-from fairly import SequenceClassificationPipeline, TokenClassificationPipeline
+{% embed url="https://colab.research.google.com/drive/1Vwd8GuMoJNOiKDwryVgf0QFS2zKVVNlf?usp=sharing" %}
 
-analyzer = FairlyAnalyzer(bias="ternary", classes=True, top_k_classes=3, ner="gus")
-result = analyzer.analyze("Tall people are so clumsy.")
-```
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td></td><td></td><td><code>TextAnalyzer</code> Pipeline</td><td><a href="textanalyzer-pipeline.md">textanalyzer-pipeline.md</a></td></tr><tr><td></td><td></td><td><code>MultimodalAnalyzer</code> Pipeline</td><td><a href="multimodalanalyzer-pipeline.md">multimodalanalyzer-pipeline.md</a></td></tr></tbody></table>
 
-Example Response:
-
-```json5
-{
-'text': {
-    'text': 'Tall people are so clumsy.', 
-    'label': 'Slightly Biased', 
-    'score': 0.6829080581665039, 
-    'aspects': {
-      'physical': 0.9650779366493225, 
-      'gender': 0.024978743866086006, 
-      'socioeconomic': 0.023334791883826256
-    }
-}, 
-'ner': [
-    {'token': 'tall', 'labels': ['B-STEREO', 'B-GEN', 'B-UNFAIR']}, 
-    {'token': 'people', 'labels': ['I-STEREO', 'I-GEN', 'I-UNFAIR']}, 
-    {'token': 'are', 'labels': ['I-STEREO']}, 
-    {'token': 'so', 'labels': ['I-STEREO']}, 
-    {'token': 'clumsy', 'labels': ['I-STEREO', 'B-UNFAIR', 'I-UNFAIR']},
-    {'token': '.', 'labels': ['I-STEREO', 'I-UNFAIR']}
-]
-}
-```
