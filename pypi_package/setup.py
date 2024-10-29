@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="the-fairly-project",
-    version="0.4",
+    version="0.5",
     description="Bias analysis toolkit for NLP and multimodal models",
     long_description=open('readme.md').read(),
     long_description_content_type='text/markdown',

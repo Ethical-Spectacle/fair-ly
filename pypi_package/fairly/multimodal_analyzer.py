@@ -18,10 +18,10 @@ class MultimodalAnalyzer:
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
 
-    def analyze(self, sentence, image):
+    def analyze(self, text, image):
         # tokenize the text
         text_inputs = self.text_tokenizer(
-            sentence, 
+            text, 
             return_tensors="pt", 
             padding="max_length", 
             truncation=True, 
@@ -41,7 +41,7 @@ class MultimodalAnalyzer:
         result = prob.round().int().item()
 
         return {
-            "text": sentence,
+            "text": text,
             "image": image,
             "prob": prob.item(),
             "label": "Biased" if result == 1 else "Unbiased"
